@@ -11,7 +11,7 @@ func Test_Gamma(t *testing.T) {
 
 	const N = 15
 	eps := 10.0
-	var v, tau, x, k, r, q float64 = 0.5, 1, 80, 120, 0.1, 0.5
+	var v, tau, x, k, r, q float64 = 0.5, 1, 100, 80, 0.1, 0.5
 	o := bs.Put
 
 	gamma := bs.BSGamma(v, tau, x, k, r, q, o)
