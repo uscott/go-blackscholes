@@ -4,16 +4,16 @@ import (
 	"math"
 	"testing"
 
-	"github.com/uscott/go-blackscholes"
+	bs "github.com/uscott/go-blackscholes"
 )
 
 func Test_Price(t *testing.T) {
 
-	v, tt, x, k, r, q := 0.5, 1.0/12, 100.0, 120.0, 0.1, 0.05
-	o := blackscholes.Call
+	const N int = 20
+	v, tau, x, k, r, q := 0.5, 1.0/12, 100.0, 120.0, 0.1, 0.05
+	o := bs.Call
 
-	N := 20
-	price := blackscholes.BSPrice(v, tt, x, k, r, q, o)
+	price := bs.BSPrice(v, tau, x, k, r, q, o)
 
 	t.Logf("Price = %.2f\n", price)
 
@@ -26,7 +26,7 @@ func Test_Price(t *testing.T) {
 	for i := 1; i <= N; i++ {
 
 		n := uint(1 << i)
-		simprice := blackscholes.BSPriceSim(v, tt, x, k, r, q, o, n)
+		simprice := bs.BSPriceSim(v, tau, x, k, r, q, o, n)
 		w, wprev := float64(n)/float64(n+nprev), float64(nprev)/float64(n+nprev)
 		simprice = w*simprice + wprev*simprev
 		err := simprice/price - 1
