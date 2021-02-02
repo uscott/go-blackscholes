@@ -9,14 +9,14 @@ import (
 
 func Test_Delta(t *testing.T) {
 
-	const N = 30
+	const N = 15
 	eps := 10.0
 	var v, tau, x, k, r, q float64 = 0.5, 1, 100, 120, 0.1, 0.5
 	o := bs.Call
 
 	delta := bs.BSDelta(v, tau, x, k, r, q, o)
 
-	t.Logf("Delta = %6.2f %%\n", 100*delta)
+	t.Logf("\nDelta = %6.2f %%\n", 100*delta)
 
 	for i := 0; i < N; i++ {
 
@@ -41,7 +41,7 @@ func Test_Delta(t *testing.T) {
 	delta = bs.BSDelta(v, tau, x, k, r, q, o)
 	eps = 10
 
-	t.Logf("Delta = %6.2f %%\n", 100*delta)
+	t.Logf("\nDelta = %6.2f %%\n", 100*delta)
 
 	for i := 0; i < N; i++ {
 
