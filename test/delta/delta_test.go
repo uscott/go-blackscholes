@@ -36,7 +36,7 @@ func Test_Delta(t *testing.T) {
 		eps /= 2
 	}
 
-	x, k = 4, 5
+	x, k = .01, .011
 
 	delta = bs.BSDelta(v, tau, x, k, r, q, o)
 	eps = 10
