@@ -10,10 +10,10 @@ func BSDeltaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 	pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
 
 	if x < e {
-		pd := ZeroUnderlyingBSPrice(t, k, r, o)
 		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		wd, wu := e/(e+x), x/(e+x)
-		return wu*(pu-pm)/(e+x) + wd*(pm-pd)/(e+x)
+		pd := ZeroUnderlyingBSPrice(t, k, r, o)
+		cu, cm, cd := x/e/(e+x), (e-x)/e/x, -e/x/(e+x)
+		return cu*pu + cm*pm + cd*pd
 	}
 
 	pd := BSPriceNoErrorCheck(v, t, x-e, k, r, q, o)
