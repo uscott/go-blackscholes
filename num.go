@@ -68,10 +68,10 @@ func BSThetaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 
 	if t < e {
 		pu := Intrinsic(0, x, k, 0, 0, o)
-		pd := BSPriceNoErrorCheck(v, t+e, x, k, r, q, o)
 		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		wu, wd := e/(e+t), t/(e+t)
-		return wu*(pu-pm)/(e+t) + wd*(pm-pd)/(e+t)
+		pd := BSPriceNoErrorCheck(v, t+e, x, k, r, q, o)
+		cu, cm, cd := x/e/(e+x), (e-x)/e/x, -e/x/(e+x)
+		return cu*pu + cm*pm + cd*pd
 	}
 
 	pu := BSPriceNoErrorCheck(v, t-e, x, k, r, q, o)
