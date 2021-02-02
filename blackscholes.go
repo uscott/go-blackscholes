@@ -139,6 +139,12 @@ func Theta(pars *PriceParams) (theta float64, err error) {
 }
 
 // AtmApprox approximates the option price when exp(-q*t)*x == exp(-r*t)*k
+// v = volatility in same units as t
+// t = time to expiry
+// x = value of spot/underlying
+// r = continuously compounded interest rate in same units as t
+// q = continuous dividend yield in same units as t
+// o = option type (Call, Put, Straddle)
 func AtmApprox(v, t, x, q float64, o OptionType) float64 {
 
 	switch o {
@@ -151,6 +157,8 @@ func AtmApprox(v, t, x, q float64, o OptionType) float64 {
 	return nan()
 }
 
+// CheckPriceParams checks whether t, x, k are non-negative and
+// o is one of the defined Option Types
 func CheckPriceParams(t, x, k float64, o OptionType) error {
 
 	if !ValidOptionType(o) {
@@ -185,7 +193,7 @@ func GetFloatPriceParams(pars *PriceParams) (v, t, x, k, r, q float64) {
 // o = option type (Call, Put, Straddle)
 func BSPrice(v, t, x, k, r, q float64, o OptionType) float64 {
 
-	if !ValidOptionType(o) || t < 0 || x < 0 || k < 0 {
+	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
@@ -233,7 +241,7 @@ func BSDelta(v, t, x, k, r, q float64, o OptionType) float64 {
 		return 2*ZeroVolBSDelta(t, x, k, r, q, o) - BSDelta(-v, t, x, k, r, q, o)
 	}
 
-	if !ValidOptionType(o) {
+	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
@@ -266,7 +274,7 @@ func BSGamma(v, t, x, k, r, q float64, o OptionType) float64 {
 	if v < 0 {
 		return 2*ZeroVolBSGamma(t, x, k, r, q) - BSGamma(-v, t, x, k, r, q, o)
 	}
-	if !ValidOptionType(o) {
+	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
@@ -294,7 +302,7 @@ func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
 		return 2*ZeroVolBSTheta(t, x, k, r, q, o) - BSTheta(-v, t, x, k, r, q, o)
 	}
 
-	if !ValidOptionType(o) {
+	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
@@ -331,7 +339,7 @@ func BSVega(v, t, x, k, r, q float64, o OptionType) float64 {
 		return -BSVega(-v, t, x, k, r, q, o)
 	}
 
-	if !ValidOptionType(o) {
+	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
