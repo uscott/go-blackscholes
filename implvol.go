@@ -3,11 +3,10 @@ package blackscholes
 import (
 	"fmt"
 	"math"
-	"time"
 )
 
 const (
-	tolDefault   float64 = 1.0 / (1 << 20)
+	tolDefault   float64 = 1.0 / (1 << 30)
 	lbDefault    float64 = 0.01
 	ubDefault    float64 = 1.99
 	MaxItDefault int     = 1000000
@@ -15,8 +14,7 @@ const (
 
 type ImpliedVolParams struct {
 	Premium    float64
-	Now        time.Time
-	Expiry     time.Time
+	TimeToExp  float64
 	Underlying float64
 	Strike     float64
 	Rate       float64
@@ -143,8 +141,7 @@ func GetFloatVolParams(pars *ImpliedVolParams) (p, t, x, k, r, q float64) {
 	if pars == nil {
 		panic(ErrNilPtrArg)
 	}
-	t = pars.Expiry.Sub(pars.Now).Hours() / 24 / 365
-	p, x, k, r, q = pars.Premium,
+	p, t, x, k, r, q = pars.Premium, pars.TimeToExp,
 		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
 	return
 }

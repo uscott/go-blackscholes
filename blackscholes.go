@@ -2,7 +2,6 @@ package blackscholes
 
 import (
 	"math"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -39,8 +38,7 @@ var (
 
 type PriceParams struct {
 	Vol        float64
-	Now        time.Time
-	Expiry     time.Time
+	TimeToExp  float64
 	Underlying float64
 	Strike     float64
 	Rate       float64
@@ -170,8 +168,10 @@ func CheckPriceParams(t, x, k float64, o OptionType) error {
 }
 
 func GetFloatPriceParams(pars *PriceParams) (v, t, x, k, r, q float64) {
-	t = pars.Expiry.Sub(pars.Now).Hours() / 24 / 365
-	v, x, k, r, q = pars.Vol,
+	if pars == nil {
+		panic(ErrNilPtrArg)
+	}
+	v, t, x, k, r, q = pars.Vol, pars.TimeToExp,
 		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
 	return
 }
