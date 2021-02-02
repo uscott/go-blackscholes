@@ -312,7 +312,7 @@ func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
 	d1 := D1(v, t, x, k, r, q)
 	d2 := D2fromD1(d1, v, t)
 
-	theta := -exp(-q*t) * x * exp(-d1*d1/2) * v / 2 / sqrt(t)
+	theta := -exp(-q*t) * v * x * exp(-d1*d1/2) / 2 / sqrt(t) * InvSqrt2PI
 	theta += q*x*exp(-q*t)*NormCDF(d1) - r*k*exp(-r*t)*NormCDF(d2)
 
 	if o == Call || o == Put {
