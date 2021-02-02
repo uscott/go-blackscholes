@@ -1,0 +1,4 @@
+github.com/maurodelazeri/gaussian-distribution v0.0.0-20181220164008-4a3ede832a5a h1:vR/ktLbz97Dk1KPTQR2ZoAW7igbOj2RFGm9/JE1sYfk=
+github.com/maurodelazeri/gaussian-distribution v0.0.0-20181220164008-4a3ede832a5a/go.mod h1:YFY6Ym+q9/epDn9T2R/z35Zl8wg4Q9iN0KOMY82ZAtY=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
