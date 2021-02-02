@@ -35,5 +35,5 @@ func BSPriceSim(v, t, x, k, r, q float64, o OptionType, n uint) float64 {
 	}
 	wg.Wait()
 
-	return sum / float64(2*n+2)
+	return sum / float64(2*n)
 }
