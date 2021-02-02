@@ -9,7 +9,7 @@ import (
 
 func Test_Price(t *testing.T) {
 
-	v, tt, x, k, r, q := 0.5, 1.0/12, 100.0, 110.0, 0.01, 0.005
+	v, tt, x, k, r, q := 0.5, 1.0/12, 100.0, 120.0, 0.1, 0.05
 	o := blackscholes.Call
 
 	N := 20
