@@ -30,13 +30,14 @@ func BSGammaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 	e := abs(eps)
 
 	if x < e {
-		puu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
-		pu := BSPriceNoErrorCheck(v, t, 2*x, k, r, q, o)
+		pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
+		px := BSPriceNoErrorCheck(v, t, 2*x, k, r, q, o)
 		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
 		pd := ZeroUnderlyingBSPrice(t, k, r, o)
-		d := (x + e) * (x + e)
-		cuu, cu, cm, cd := 2*x/e/d, (e-x)/x/d, -2/e/x, 1/x/(e+x)
-		return cuu*puu + cu*pu + cm*pm + cd*pd
+		cu, cx := 2*x/(e*e)/(e+x), 2*(e-x)/e/(x*x)
+		cm := -2 * (x*x*x + 2*e*e*e) / (x * x) / (e * e) / (e + x)
+		cd := 2 * (e*e + x*x) / (x * x) / (e * e) / (e + x)
+		return cu*pu + cx*px + cm*pm + cd*pd
 	}
 	pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
 	pd := BSPriceNoErrorCheck(v, t, x-e, k, r, q, o)
