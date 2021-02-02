@@ -13,17 +13,17 @@ const (
 )
 
 type ImpliedVolParams struct {
-	Premium    float64
-	TimeToExp  float64
-	Underlying float64
-	Strike     float64
-	Rate       float64
-	Dividend   float64
-	Type       OptionType
-	LB         *float64
-	UB         *float64
-	Tol        *float64
-	MaxIt      *int
+	Premium      float64
+	TimeToExpiry float64
+	Underlying   float64
+	Strike       float64
+	Rate         float64
+	Dividend     float64
+	Type         OptionType
+	LB           *float64
+	UB           *float64
+	Tol          *float64
+	MaxIt        *int
 }
 
 func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
@@ -141,7 +141,7 @@ func GetFloatVolParams(pars *ImpliedVolParams) (p, t, x, k, r, q float64) {
 	if pars == nil {
 		panic(ErrNilPtrArg)
 	}
-	p, t, x, k, r, q = pars.Premium, pars.TimeToExp,
+	p, t, x, k, r, q = pars.Premium, pars.TimeToExpiry,
 		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
 	return
 }

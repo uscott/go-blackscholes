@@ -37,13 +37,13 @@ var (
 )
 
 type PriceParams struct {
-	Vol        float64
-	TimeToExp  float64
-	Underlying float64
-	Strike     float64
-	Rate       float64
-	Dividend   float64
-	Type       OptionType
+	Vol          float64
+	TimeToExpiry float64
+	Underlying   float64
+	Strike       float64
+	Rate         float64
+	Dividend     float64
+	Type         OptionType
 }
 
 func Price(pars *PriceParams) (price float64, err error) {
@@ -171,7 +171,7 @@ func GetFloatPriceParams(pars *PriceParams) (v, t, x, k, r, q float64) {
 	if pars == nil {
 		panic(ErrNilPtrArg)
 	}
-	v, t, x, k, r, q = pars.Vol, pars.TimeToExp,
+	v, t, x, k, r, q = pars.Vol, pars.TimeToExpiry,
 		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
 	return
 }
