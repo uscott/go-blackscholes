@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/maurodelazeri/gaussian-distribution"
 	"github.com/pkg/errors"
 )
 
@@ -214,9 +213,7 @@ func BSPriceNoErrorCheck(v, t, x, k, r, q float64, o OptionType) float64 {
 
 	d1 := D1(v, t, x, k, r, q)
 	d2 := D2fromD1(d1, v, t)
-	stdgauss := gaussian.NewGaussian(0, 1)
-	Nd1, Nd2 := stdgauss.Cdf(d1), stdgauss.Cdf(d2)
-
+	Nd1, Nd2 := NormCDF(d1), NormCDF(d2)
 	dfq, dfr := exp(-q*t), exp(-r*t)
 
 	switch o {
@@ -250,8 +247,7 @@ func BSDelta(v, t, x, k, r, q float64, o OptionType) float64 {
 		return ZeroVolBSDelta(t, x, k, r, q, o)
 	}
 
-	stdgauss := gaussian.NewGaussian(0, 1)
-	Nd1 := stdgauss.Cdf(D1(v, t, x, k, r, q))
+	Nd1 := NormCDF(D1(v, t, x, k, r, q))
 
 	switch o {
 	case Call:
@@ -313,12 +309,11 @@ func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
 		return inf(-1)
 	}
 
-	stdgauss := gaussian.NewGaussian(0, 1)
 	d1 := D1(v, t, x, k, r, q)
 	d2 := D2fromD1(d1, v, t)
 
 	theta := -exp(-q*t) * x * exp(-d1*d1/2) * v / 2 / sqrt(t)
-	theta += q*x*exp(-q*t)*stdgauss.Cdf(d1) - r*k*exp(-r*t)*stdgauss.Cdf(d2)
+	theta += q*x*exp(-q*t)*NormCDF(d1) - r*k*exp(-r*t)*NormCDF(d2)
 
 	if o == Call || o == Put {
 		return theta
