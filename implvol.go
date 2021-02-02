@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+const (
+	tolDefault   float64 = 1.0 / (1 << 20)
+	lbDefault    float64 = 0.01
+	ubDefault    float64 = 1.99
+	MaxItDefault int     = 1000000
+)
+
 type ImpliedVolParams struct {
 	Premium    float64
 	Now        time.Time
@@ -112,7 +119,7 @@ func CheckVolSearchParams(lb, ub, tol *float64, maxit *int) {
 		*ub = max(*lb+1, ubDefault)
 	}
 	if *tol <= 0 {
-		*tol = Tiny
+		*tol = tolDefault
 	}
 	if *maxit <= 0 {
 		*maxit = MaxItDefault
@@ -146,7 +153,7 @@ func GetVolSearchParams(pars *ImpliedVolParams) (lb, ub, tol float64, maxit int)
 	if pars == nil {
 		panic(ErrNilPtrArg)
 	}
-	lb, ub, tol, maxit = lbDefault, ubDefault, Tiny, MaxItDefault
+	lb, ub, tol, maxit = lbDefault, ubDefault, tolDefault, MaxItDefault
 	if pars.LB != nil {
 		lb = *pars.LB
 	}

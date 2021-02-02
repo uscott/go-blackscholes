@@ -16,13 +16,7 @@ const (
 	Straddle = OptionType('s')
 )
 
-const (
-	Tiny         float64 = 1e-4
-	lbDefault    float64 = 0.01
-	ubDefault    float64 = 1.99
-	MaxItDefault int     = 1000000
-	InvSqrt2PI   float64 = 1.0 / math.Sqrt2 / math.SqrtPi
-)
+const InvSqrt2PI float64 = 1.0 / math.Sqrt2 / math.SqrtPi
 
 var (
 	ErrNegPremium        = errors.New("Negative option premium")
