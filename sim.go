@@ -24,7 +24,7 @@ func BSPriceSim(v, t, x, k, r, q float64, o OptionType, n uint) float64 {
 	for i := 0; i < int(n); i++ {
 		go func(i int) {
 			mu.Lock()
-			e := exp(s * stdg.Ppf(float64(i)-0.5+rand.Float64()))
+			e := exp(s * stdg.Ppf((float64(i)-0.5+rand.Float64())/float64(n)))
 			x = m * e
 			sum += Intrinsic(0, x, k, 0, 0, o)
 			x = m / e
