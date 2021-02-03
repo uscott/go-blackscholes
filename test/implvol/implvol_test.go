@@ -43,13 +43,13 @@ func Test_ImpliedVol(t *testing.T) {
 		premium := bs.BSPrice(v, tau, x, k, r, q, o)
 
 		pars := &bs.ImpliedVolParams{
-			Premium:    premium,
-			TimeToExp:  tau,
-			Underlying: x,
-			Strike:     k,
-			Rate:       r,
-			Dividend:   q,
-			Type:       o,
+			Premium:      premium,
+			TimeToExpiry: tau,
+			Underlying:   x,
+			Strike:       k,
+			Rate:         r,
+			Dividend:     q,
+			Type:         o,
 		}
 
 		implvol, err := bs.ImpliedVol(pars)

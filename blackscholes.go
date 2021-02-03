@@ -58,7 +58,7 @@ func Price(pars *PriceParams) (price float64, err error) {
 		return nan(), err
 	}
 
-	price = BSPrice(v, t, x, k, r, q, pars.Type)
+	price = BSPriceNoErrorCheck(v, t, x, k, r, q, pars.Type)
 	return
 }
 
@@ -214,16 +214,16 @@ func BSPriceNoErrorCheck(v, t, x, k, r, q float64, o OptionType) float64 {
 	d1 := D1(v, t, x, k, r, q)
 	d2 := D2fromD1(d1, v, t)
 	Nd1, Nd2 := NormCDF(d1), NormCDF(d2)
-	dfq, dfr := exp(-q*t), exp(-r*t)
+	x, k = exp(-q*t)*x, exp(-r*t)*k
 
 	switch o {
 	case Call:
-		return dfq*Nd1*x - dfr*Nd2*k
+		return Nd1*x - Nd2*k
 	case Put:
-		return dfq*(Nd1-1)*x - dfr*(Nd2-1)*k
+		return (Nd1-1)*x - (Nd2-1)*k
 	}
 
-	return dfq*(2*Nd1-1)*x - dfr*(2*Nd2-1)*k
+	return (2*Nd1-1)*x - (2*Nd2-1)*k
 }
 
 func BSDelta(v, t, x, k, r, q float64, o OptionType) float64 {
@@ -237,8 +237,6 @@ func BSDelta(v, t, x, k, r, q float64, o OptionType) float64 {
 	}
 
 	switch {
-	case t < 0, x < 0, k < 0:
-		return nan()
 	case x == 0:
 		return ZeroUnderlyingBSDelta(t, q, o)
 	case k == 0:
@@ -264,13 +262,12 @@ func BSGamma(v, t, x, k, r, q float64, o OptionType) float64 {
 	if v < 0 {
 		return 2*ZeroVolBSGamma(t, x, k, r, q) - BSGamma(-v, t, x, k, r, q, o)
 	}
+
 	if CheckPriceParams(t, x, k, o) != nil {
 		return nan()
 	}
 
 	switch {
-	case t < 0, x < 0, k < 0:
-		return nan()
 	case x == 0, k == 0:
 		return 0
 	case v == 0:
@@ -297,8 +294,6 @@ func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
 	}
 
 	switch {
-	case t < 0, x < 0, k < 0:
-		return nan()
 	case x == 0:
 		return ZeroUnderlyingBSTheta(t, k, r, o)
 	case k == 0:
@@ -312,8 +307,9 @@ func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
 	d1 := D1(v, t, x, k, r, q)
 	d2 := D2fromD1(d1, v, t)
 
-	theta := -exp(-q*t) * v * x * exp(-d1*d1/2) / 2 / sqrt(t) * InvSqrt2PI
-	theta += q*x*exp(-q*t)*NormCDF(d1) - r*k*exp(-r*t)*NormCDF(d2)
+	x, k = exp(-q*t)*x, exp(-r*t)*k
+	theta := -v * x * exp(-d1*d1/2) / 2 / sqrt(t) * InvSqrt2PI
+	theta += q*x*NormCDF(d1) - r*k*NormCDF(d2)
 
 	if o == Call || o == Put {
 		return theta
@@ -359,15 +355,15 @@ func D2(v, t, x, k, r, q float64) float64 {
 
 func Intrinsic(t, x, k, r, q float64, o OptionType) float64 {
 
-	f := exp(-q*t)*x - exp(-r*t)*k
+	p := exp(-q*t)*x - exp(-r*t)*k
 
 	switch o {
 	case Call:
-		return max(0, +f)
+		return max(0, +p)
 	case Put:
-		return max(0, -f)
+		return max(0, -p)
 	}
-	return abs(f)
+	return abs(p)
 }
 
 func ValidOptionType(o OptionType) bool {
@@ -415,30 +411,32 @@ func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
 }
 
 func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
-	q = exp(-q * t)
-	x, k = q*x, exp(-r*t)*k
+
+	dfq := exp(-q * t)
+	x, k = dfq*x, exp(-r*t)*k
+
 	switch o {
 	case Call:
 		if x < k {
 			return 0
 		}
-		return q
+		return dfq
 	case Put:
 		if x < k {
-			return -q
+			return -dfq
 		}
 		return 0
 	case Straddle:
 		if x < k {
-			return -q
+			return -dfq
 		}
-		return q
+		return dfq
 	}
 	return nan()
 }
 
 func ZeroVolBSGamma(t, x, k, r, q float64) float64 {
-	if exp(-q*t)*x != exp(-r*t)*k {
+	if exp(-q*t)*x-exp(-r*t)*k != 0 {
 		return 0
 	}
 	return inf(1)
