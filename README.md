@@ -2,6 +2,8 @@
 
 Go implementation of the basic Black Scholes formulas for European option prices, greeks and implied volatility.
 
+Edge cases such as e.g. zero volatility implemented exactly.
+
 Use at your own risk.
 
 ### Install
@@ -37,6 +39,12 @@ func main() {
     if err != nil {
         panic(err)
     }
+    
+    fmt.Printf("Price: %.2f\n", price)
+    
+    // Version with argument list and no error checking:
+    
+    price = bs.BSPriceNoErrorCheck(0.2, 1, 100, 100, 0.02, 0, bs.Straddle)
     
     fmt.Printf("Price: %.2f\n", price)
 }
