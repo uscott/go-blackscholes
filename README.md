@@ -29,7 +29,7 @@ func main() {
         Underlying:   100,
         Strike:       100,
         Rate:         0.02,
-        Divident:     0,
+        Dividen:      0,
         Type:         bs.Straddle,
     }
 
