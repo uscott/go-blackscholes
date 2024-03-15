@@ -1,4 +1,4 @@
-all: setup
+all: setup test
 .PHONY: all
 
 setup:
@@ -6,5 +6,5 @@ setup:
 .PHONY: setup
 
 test:
-	go test -v ./...
+	go test ./...
 .PHONY: test
