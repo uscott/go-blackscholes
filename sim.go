@@ -3,7 +3,6 @@ package blackscholes
 import (
 	"math/rand"
 	"sync"
-	"time"
 )
 
 func BSPriceSim(v, t, x, k, r, q float64, o OptionType, n uint) float64 {
@@ -11,8 +10,6 @@ func BSPriceSim(v, t, x, k, r, q float64, o OptionType, n uint) float64 {
 	if !ValidOptionType(o) || n == 0 {
 		return nan()
 	}
-
-	rand.Seed(time.Now().UnixNano())
 
 	mu, wg := new(sync.Mutex), new(sync.WaitGroup)
 	sum, x0 := 0.0, exp(-q*t)*x
