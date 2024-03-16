@@ -1,9 +1,11 @@
 package blackscholes
 
+import "math"
+
 func BSDeltaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 
 	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+		return math.NaN()
 	}
 
 	e := abs(eps)
@@ -24,7 +26,7 @@ func BSDeltaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 func BSGammaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 
 	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+		return math.NaN()
 	}
 
 	e := abs(eps)
@@ -49,7 +51,7 @@ func BSGammaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 func BSVegaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 
 	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+		return math.NaN()
 	}
 
 	pu := BSPriceNoErrorCheck(v+eps, t, x, k, r, q, o)
@@ -61,7 +63,7 @@ func BSVegaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 func BSThetaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
 
 	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+		return math.NaN()
 	}
 
 	e := abs(eps)
