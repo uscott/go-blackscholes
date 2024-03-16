@@ -77,11 +77,6 @@ func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 		err = ErrNegativeEpsilon
 		return
 	}
-	if CheckPriceParams(t, x, k, o) != nil {
-		return math.NaN()
-	}
-
-	e := abs(eps)
 
 	if x < e {
 		pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
