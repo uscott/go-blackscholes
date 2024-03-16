@@ -1,6 +1,7 @@
 package blackscholes
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/pkg/errors"
@@ -17,10 +18,11 @@ const (
 const InvSqrt2PI float64 = 1.0 / math.Sqrt2 / math.SqrtPi
 
 var (
+	ErrNegVol            = errors.New("Negative volatility")
+	ErrNegTimeToExp      = errors.New("Negative time to expiry")
 	ErrNegPremium        = errors.New("Negative option premium")
 	ErrNegPrice          = errors.New("Negative underlying price")
 	ErrNegStrike         = errors.New("Negative strike")
-	ErrNegTimeToExp      = errors.New("Negative time to expiry")
 	ErrUnknownOptionType = errors.New("Unknown option type")
 	ErrNilPtrArg         = errors.New("Nil pointer argument")
 	ErrNoncovergence     = errors.New("Did not converge")
@@ -32,7 +34,6 @@ var (
 	inf  func(int) float64              = math.Inf
 	log  func(float64) float64          = math.Log
 	max  func(float64, float64) float64 = math.Max
-	nan  func() float64                 = math.NaN
 	sqrt func(float64) float64          = math.Sqrt
 )
 
@@ -46,324 +47,367 @@ type PriceParams struct {
 	Type         OptionType
 }
 
-func Price(pars *PriceParams) (price float64, err error) {
+// Price returns the Black Scholes option price.
+// vol = volatility in same units as timeToExpiry
+// timeToExpiry = time to expiry
+// spot = value of spot/underlying
+// strike = strike price
+// interestRate = continuously compounded interest rate in same units as t
+// dividendYield = continuous dividend yield in same units as t
+// optionType = option type (Call, Put, Straddle)
 
-	if pars == nil {
-		return nan(), ErrNilPtrArg
+func Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (price float64, err error) {
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		price = math.NaN()
+		return
 	}
 
-	v, t, x, k, r, q := GetFloatPriceParams(pars)
-
-	if err = CheckPriceParams(t, x, k, pars.Type); err != nil {
-		return nan(), err
+	switch {
+	case spot == 0:
+		price = ZeroUnderlyingBSPrice(timeToExpiry, strike, interestRate, optionType)
+		return
+	case strike == 0:
+		price = ZeroStrikeBSPrice(timeToExpiry, spot, dividendYield, optionType)
+		return
+	case vol == 0:
+		price = Intrinsic(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		return
 	}
 
-	price = BSPriceNoErrorCheck(v, t, x, k, r, q, pars.Type)
-	return
-}
+	volIsNegative := vol < 0
 
-func Delta(pars *PriceParams) (delta float64, err error) {
+	vol = math.Abs(vol)
 
-	if pars == nil {
-		return nan(), ErrNilPtrArg
+	var d1, d2 float64
+
+	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	if err != nil {
+		price = math.NaN()
+		return
 	}
 
-	v, t, x, k, r, q := GetFloatPriceParams(pars)
-
-	if err = CheckPriceParams(t, x, k, pars.Type); err != nil {
-		return nan(), err
+	d2, err = D2fromD1(d1, vol, timeToExpiry)
+	if err != nil {
+		price = math.NaN()
+		return
 	}
 
-	delta = BSDelta(v, t, x, k, r, q, pars.Type)
+	Nd1, Nd2 := NormCDF(d1), NormCDF(d2)
 
-	return
-}
+	spot *= math.Exp(-dividendYield * timeToExpiry)
+	strike *= math.Exp(-interestRate * timeToExpiry)
 
-func Gamma(pars *PriceParams) (gamma float64, err error) {
-
-	if pars == nil {
-		return nan(), ErrNilPtrArg
-	}
-
-	v, t, x, k, r, q := GetFloatPriceParams(pars)
-
-	if err = CheckPriceParams(t, x, k, pars.Type); err != nil {
-		return nan(), err
-	}
-
-	gamma = BSGamma(v, t, x, k, r, q, pars.Type)
-	return
-}
-
-func Vega(pars *PriceParams) (vega float64, err error) {
-
-	if pars == nil {
-		return nan(), ErrNilPtrArg
-	}
-
-	v, t, x, k, r, q := GetFloatPriceParams(pars)
-
-	if err = CheckPriceParams(t, x, k, pars.Type); err != nil {
-		return nan(), err
-	}
-
-	vega = BSVega(v, t, x, k, r, q, pars.Type)
-
-	return
-}
-
-func Theta(pars *PriceParams) (theta float64, err error) {
-
-	if pars == nil {
-		return nan(), ErrNilPtrArg
-	}
-
-	v, t, x, k, r, q := GetFloatPriceParams(pars)
-
-	if err = CheckPriceParams(t, x, k, pars.Type); err != nil {
-		return nan(), err
-	}
-
-	theta = BSTheta(v, t, x, k, r, q, pars.Type)
-
-	return
-}
-
-// AtmApprox approximates the option price when exp(-q*t)*x == exp(-r*t)*k
-// v = volatility in same units as t
-// t = time to expiry
-// x = value of spot/underlying
-// r = continuously compounded interest rate in same units as t
-// q = continuous dividend yield in same units as t
-// o = option type (Call, Put, Straddle)
-func AtmApprox(v, t, x, q float64, o OptionType) float64 {
-
-	switch o {
-	case Call, Put:
-		return exp(-q*t) * v * x * sqrt(t) * InvSqrt2PI
+	switch optionType {
+	case Call:
+		price = spot*Nd1 - strike*Nd2
+	case Put:
+		price = spot*(Nd1-1) - strike*(Nd2-1)
 	case Straddle:
-		return 2 * exp(-q*t) * v * x * sqrt(t) * InvSqrt2PI
+		price = (2*Nd1-1)*spot - (2*Nd2-1)*strike
 	}
 
-	return nan()
+	if volIsNegative {
+		intrinsic := Intrinsic(timeToExpiry, spot, strike, 0, 0, optionType)
+		price = intrinsic - (price - intrinsic)
+	}
+
+	return
 }
 
-// CheckPriceParams checks whether t, x, k are non-negative and
-// o is one of the defined Option Types
-func CheckPriceParams(t, x, k float64, o OptionType) error {
+func Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (delta float64, err error) {
 
-	if !ValidOptionType(o) {
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		delta = math.NaN()
+		return
+	}
+
+	switch {
+	case spot == 0:
+		delta = ZeroUnderlyingBSDelta(timeToExpiry, dividendYield, optionType)
+		return
+	case strike == 0:
+		delta = ZeroStrikeBSDelta(timeToExpiry, spot, optionType)
+		return
+	case vol == 0:
+		delta = ZeroVolBSDelta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		return
+	}
+
+	volIsNegative := vol < 0
+	vol = math.Abs(vol)
+
+	var d1 float64
+	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	if err != nil {
+		delta = math.NaN()
+		return
+	}
+
+	Nd1 := NormCDF(d1)
+	dividendDiscount := math.Exp(-dividendYield * timeToExpiry)
+
+	switch optionType {
+	case Call:
+		delta = dividendDiscount * Nd1
+	case Put:
+		delta = dividendDiscount * (Nd1 - 1)
+	case Straddle:
+		delta = dividendDiscount * (2*Nd1 - 1)
+	default:
+		delta = math.NaN()
+		err = ErrUnknownOptionType
+		return
+	}
+
+	if volIsNegative {
+		zeroVolDelta := ZeroVolBSDelta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		delta = zeroVolDelta - (delta - zeroVolDelta)
+	}
+
+	return
+}
+
+// AtmApprox approximates the option price when the spot discounted by the dividend yield
+// is equal to the strike discounted by the interest rate.
+func AtmApprox(vol, timeToExpiry, spot, dividendYield float64, optionType OptionType) (price float64, err error) {
+
+	if timeToExpiry < 0 {
+		price = math.NaN()
+		err = ErrNegTimeToExp
+		return
+	}
+
+	vol *= math.Sqrt(timeToExpiry)
+	spot *= math.Exp(-dividendYield * timeToExpiry)
+
+	switch optionType {
+	case Call, Put:
+		price = spot * vol * InvSqrt2PI
+	case Straddle:
+		price = 2 * spot * vol * InvSqrt2PI
+	default:
+		price = math.NaN()
+		err = ErrUnknownOptionType
+	}
+
+	return
+}
+
+// CheckPriceParams checks whether timeToExpiry, spot, and strike are non-negative, and
+// optionType is one of the defined OptionType constants
+func CheckPriceParams(timeToExpiry, spot, strike float64, optionType OptionType) error {
+
+	if !ValidOptionType(optionType) {
 		return ErrUnknownOptionType
 	}
 
 	switch {
-	case t < 0:
+	case timeToExpiry < 0:
 		return ErrNegTimeToExp
-	case x < 0:
+	case spot < 0:
 		return ErrNegPrice
-	case k < 0:
+	case strike < 0:
 		return ErrNegStrike
 	}
 	return nil
 }
 
-func GetFloatPriceParams(pars *PriceParams) (v, t, x, k, r, q float64) {
-	if pars == nil {
-		panic(ErrNilPtrArg)
+func Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (gamma float64, err error) {
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		gamma = math.NaN()
+		return
 	}
-	v, t, x, k, r, q = pars.Vol, pars.TimeToExpiry,
-		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
+
+	switch {
+	case spot == 0, strike == 0:
+		gamma = 0
+		return
+	case vol == 0:
+		gamma = ZeroVolBSGamma(timeToExpiry, spot, strike, interestRate, dividendYield)
+		return
+	}
+
+	volIsNegative := vol < 0
+	vol = math.Abs(vol)
+
+	var d1 float64
+	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	if err != nil {
+		gamma = math.NaN()
+		return
+	}
+
+	gamma = exp(-dividendYield*timeToExpiry-d1*d1/2) / spot / vol / sqrt(timeToExpiry) * InvSqrt2PI
+
+	if optionType == Straddle {
+		gamma *= 2
+	}
+
+	if volIsNegative {
+		gamma = 2*ZeroVolBSGamma(timeToExpiry, spot, strike, interestRate, dividendYield) - gamma
+	}
+
 	return
 }
 
-// BSPrice returns the Black Scholes option price.
-// v = volatility in same units as t
-// t = time to expiry
-// x = value of spot/underlying
-// k = strike price
-// r = continuously compounded interest rate in same units as t
-// q = continuous dividend yield in same units as t
-// o = option type (Call, Put, Straddle)
-func BSPrice(v, t, x, k, r, q float64, o OptionType) float64 {
+func Theta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (theta float64, err error) {
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
-	}
-
-	return BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-}
-
-func BSPriceNoErrorCheck(v, t, x, k, r, q float64, o OptionType) float64 {
-
-	if v < 0 {
-		p := BSPrice(-v, t, x, k, r, q, o)
-		i := Intrinsic(t, x, k, r, q, o)
-		e := p - i
-		return i - e
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		theta = math.NaN()
+		return
 	}
 
 	switch {
-	case x == 0:
-		return ZeroUnderlyingBSPrice(t, k, r, o)
-	case k == 0:
-		return ZeroStrikeBSPrice(t, x, q, o)
-	case v == 0:
-		return Intrinsic(t, x, k, r, q, o)
+	case spot == 0:
+		theta = ZeroUnderlyingBSTheta(timeToExpiry, strike, interestRate, optionType)
+		return
+	case strike == 0:
+		theta = ZeroStrikeBSTheta(timeToExpiry, spot, dividendYield, optionType)
+		return
+	case vol == 0:
+		theta = ZeroVolBSTheta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		return
+	case timeToExpiry == 0:
+		theta = math.Inf(-1)
+		return
 	}
 
-	d1 := D1(v, t, x, k, r, q)
-	d2 := D2fromD1(d1, v, t)
-	Nd1, Nd2 := NormCDF(d1), NormCDF(d2)
-	x, k = exp(-q*t)*x, exp(-r*t)*k
+	volIsNegative := vol < 0
+	vol = math.Abs(vol)
 
-	switch o {
+	var d1, d2 float64
+
+	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	if err != nil {
+		theta = math.NaN()
+		return
+	}
+
+	d2, err = D2fromD1(d1, vol, timeToExpiry)
+	if err != nil {
+		theta = math.NaN()
+		return
+	}
+
+	spot *= exp(-dividendYield * timeToExpiry)
+	strike *= exp(-interestRate * timeToExpiry)
+	theta = -vol*spot*exp(-d1*d1/2)/2/sqrt(timeToExpiry)*InvSqrt2PI + dividendYield*spot*NormCDF(d1) - interestRate*strike*NormCDF(d2)
+
+	if optionType == Straddle {
+		theta *= 2
+	}
+
+	if volIsNegative {
+		theta = 2*ZeroVolBSTheta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType) - theta
+	}
+
+	return
+}
+
+func Vega(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (vega float64, err error) {
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		vega = math.NaN()
+		return
+	}
+
+	if vol == 0 || timeToExpiry == 0 || spot == 0 || strike == 0 {
+		return
+	}
+
+	volIsNegative := vol < 0
+	vol = math.Abs(vol)
+
+	var d1 float64
+
+	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+
+	vega = spot * exp(-dividendYield*timeToExpiry-0.5*d1*d1) * sqrt(timeToExpiry) * InvSqrt2PI
+
+	if optionType == Straddle {
+		vega *= 2
+	}
+
+	if volIsNegative {
+		vega *= -1
+	}
+
+	return
+}
+
+func D2fromD1(d1, vol, timeToExpiry float64) (d2 float64, err error) {
+
+	if timeToExpiry < 0 {
+		err = ErrNegTimeToExp
+		d2 = math.NaN()
+		return
+	}
+
+	d2 = d1 - vol*sqrt(timeToExpiry)
+	return
+}
+
+func D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d1 float64, err error) {
+
+	d1 = math.NaN()
+
+	if timeToExpiry < 0 {
+		err = ErrNegTimeToExp
+		return
+	}
+
+	if vol < 0 {
+		err = ErrNegVol
+		return
+	}
+
+	if strike == 0 || spot*strike < 0 {
+		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
+		return
+	}
+
+	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / sqrt(timeToExpiry)
+
+	return
+}
+
+func D2(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d2 float64, err error) {
+
+	d2 = math.NaN()
+
+	if timeToExpiry < 0 {
+		err = ErrNegTimeToExp
+		return
+	}
+
+	if vol < 0 {
+		err = ErrNegVol
+		return
+	}
+
+	if strike == 0 || spot*strike < 0 {
+		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
+		return
+	}
+
+	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / sqrt(timeToExpiry)
+
+	return
+}
+
+func Intrinsic(timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) float64 {
+
+	forwardValue := math.Exp(-dividendYield*timeToExpiry)*spot - math.Exp(-interestRate*timeToExpiry)*strike
+
+	switch optionType {
 	case Call:
-		return Nd1*x - Nd2*k
+		return math.Max(0, forwardValue)
 	case Put:
-		return (Nd1-1)*x - (Nd2-1)*k
+		return math.Max(0, -forwardValue)
 	}
-
-	return (2*Nd1-1)*x - (2*Nd2-1)*k
-}
-
-func BSDelta(v, t, x, k, r, q float64, o OptionType) float64 {
-
-	if v < 0 {
-		return 2*ZeroVolBSDelta(t, x, k, r, q, o) - BSDelta(-v, t, x, k, r, q, o)
-	}
-
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
-	}
-
-	switch {
-	case x == 0:
-		return ZeroUnderlyingBSDelta(t, q, o)
-	case k == 0:
-		return ZeroStrikeBSDelta(t, q, o)
-	case v == 0:
-		return ZeroVolBSDelta(t, x, k, r, q, o)
-	}
-
-	Nd1 := NormCDF(D1(v, t, x, k, r, q))
-
-	switch o {
-	case Call:
-		return exp(-q*t) * Nd1
-	case Put:
-		return exp(-q*t) * (Nd1 - 1)
-	}
-
-	return exp(-q*t) * (2*Nd1 - 1)
-}
-
-func BSGamma(v, t, x, k, r, q float64, o OptionType) float64 {
-
-	if v < 0 {
-		return 2*ZeroVolBSGamma(t, x, k, r, q) - BSGamma(-v, t, x, k, r, q, o)
-	}
-
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
-	}
-
-	switch {
-	case x == 0, k == 0:
-		return 0
-	case v == 0:
-		return ZeroVolBSGamma(t, x, k, r, q)
-	}
-
-	d1 := D1(v, t, x, k, r, q)
-
-	if o == Call || o == Put {
-		return exp(-q*t-d1*d1/2) / x / v / sqrt(t) * InvSqrt2PI
-	}
-
-	return 2 * exp(-q*t-d1*d1/2) / x / v / sqrt(t) * InvSqrt2PI
-}
-
-func BSTheta(v, t, x, k, r, q float64, o OptionType) float64 {
-
-	if v < 0 {
-		return 2*ZeroVolBSTheta(t, x, k, r, q, o) - BSTheta(-v, t, x, k, r, q, o)
-	}
-
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
-	}
-
-	switch {
-	case x == 0:
-		return ZeroUnderlyingBSTheta(t, k, r, o)
-	case k == 0:
-		return ZeroStrikeBSTheta(t, x, q, o)
-	case v == 0:
-		return ZeroVolBSTheta(t, x, k, r, q, o)
-	case t == 0:
-		return inf(-1)
-	}
-
-	d1 := D1(v, t, x, k, r, q)
-	d2 := D2fromD1(d1, v, t)
-
-	x, k = exp(-q*t)*x, exp(-r*t)*k
-	theta := -v * x * exp(-d1*d1/2) / 2 / sqrt(t) * InvSqrt2PI
-	theta += q*x*NormCDF(d1) - r*k*NormCDF(d2)
-
-	if o == Call || o == Put {
-		return theta
-	}
-
-	return 2 * theta
-}
-
-func BSVega(v, t, x, k, r, q float64, o OptionType) float64 {
-
-	if v < 0 {
-		return -BSVega(-v, t, x, k, r, q, o)
-	}
-
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
-	}
-
-	if v == 0 || t == 0 || x == 0 || k == 0 {
-		return 0
-	}
-
-	d1 := D1(v, t, x, k, r, q)
-
-	if o == Call || o == Put {
-		return x * exp(-q*t-d1*d1/2) * sqrt(t) * InvSqrt2PI
-	}
-
-	return 2 * x * exp(-q*t-d1*d1/2) * sqrt(t) * InvSqrt2PI
-}
-
-func D2fromD1(d1, v, t float64) float64 {
-	return d1 - v*sqrt(t)
-}
-
-func D1(v, t, x, k, r, q float64) float64 {
-	return (log(x/k) + (r-q+0.5*v*v)*t) / v / sqrt(t)
-}
-
-func D2(v, t, x, k, r, q float64) float64 {
-	return (log(x/k) + (r-q-0.5*v*v)*t) / v / sqrt(t)
-}
-
-func Intrinsic(t, x, k, r, q float64, o OptionType) float64 {
-
-	p := exp(-q*t)*x - exp(-r*t)*k
-
-	switch o {
-	case Call:
-		return max(0, +p)
-	case Put:
-		return max(0, -p)
-	}
-	return abs(p)
+	return math.Abs(forwardValue)
 }
 
 func ValidOptionType(o OptionType) bool {
@@ -377,7 +421,7 @@ func ZeroStrikeBSPrice(t, x, q float64, o OptionType) float64 {
 	case Put:
 		return 0
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
@@ -387,7 +431,7 @@ func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
 	case Put, Straddle:
 		return exp(-r*t) * k
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroStrikeBSDelta(t, q float64, o OptionType) float64 {
@@ -397,7 +441,7 @@ func ZeroStrikeBSDelta(t, q float64, o OptionType) float64 {
 	case Put:
 		return 0
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
@@ -407,7 +451,7 @@ func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
 	case Put, Straddle:
 		return -exp(-q * t)
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
@@ -432,7 +476,7 @@ func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
 		}
 		return dfq
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroVolBSGamma(t, x, k, r, q float64) float64 {
@@ -449,7 +493,7 @@ func ZeroStrikeBSTheta(t, x, q float64, o OptionType) float64 {
 	case Put:
 		return 0
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroUnderlyingBSTheta(t, k, r float64, o OptionType) float64 {
@@ -459,7 +503,7 @@ func ZeroUnderlyingBSTheta(t, k, r float64, o OptionType) float64 {
 	case Put, Straddle:
 		return r * k * exp(-r*t)
 	}
-	return nan()
+	return math.NaN()
 }
 
 func ZeroVolBSTheta(t, x, k, r, q float64, o OptionType) float64 {
@@ -496,5 +540,5 @@ func ZeroVolBSTheta(t, x, k, r, q float64, o OptionType) float64 {
 		}
 	}
 
-	return nan()
+	return math.NaN()
 }

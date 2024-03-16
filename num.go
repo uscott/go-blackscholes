@@ -1,30 +1,82 @@
 package blackscholes
 
-import "math"
+import (
+	"math"
 
-func BSDeltaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+	"github.com/pkg/errors"
+)
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return math.NaN()
+const defaultEpsilon float64 = 1.0 / (1 << 30)
+
+var ErrNegativeEpsilon = errors.New("epsilon must be positive")
+
+func DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (delta float64, err error) {
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		delta = math.NaN()
+		return
 	}
 
-	e := abs(eps)
-	pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
+	eps := defaultEpsilon
 
-	if x < e {
-		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		pd := ZeroUnderlyingBSPrice(t, k, r, o)
-		cu, cm, cd := x/e/(e+x), (e-x)/e/x, -e/x/(e+x)
-		return cu*pu + cm*pm + cd*pd
+	if len(epsilon) > 0 {
+		eps = epsilon[0]
 	}
 
-	pd := BSPriceNoErrorCheck(v, t, x-e, k, r, q, o)
+	if eps <= 0 {
+		delta = math.NaN()
+		err = ErrNegativeEpsilon
+		return
+	}
 
-	return (pu - pd) / 2 / e
+	var upPrice, downPrice float64
+
+	upPrice, err = Price(vol, timeToExpiry, spot+eps, strike, interestRate, dividendYield, optionType)
+
+	if spot < eps {
+		var midPrice float64
+		midPrice, err = Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		if err != nil {
+			delta = math.NaN()
+			return
+		}
+		downPrice = ZeroUnderlyingBSPrice(timeToExpiry, strike, interestRate, optionType)
+		upWeight := spot / eps / (spot + eps)
+		midWeight := (eps - spot) / eps / (spot + eps)
+		downWeight := -eps / spot / (spot + eps)
+		delta = upWeight*upPrice + midWeight*midPrice + downWeight*downPrice
+		return
+	}
+
+	downPrice, err = Price(vol, timeToExpiry, spot-eps, strike, interestRate, dividendYield, optionType)
+	if err != nil {
+		delta = math.NaN()
+		return
+	}
+
+	delta = (upPrice - downPrice) / 2 / eps
+
+	return
 }
 
-func BSGammaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (gamma float64, err error) {
 
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		gamma = math.NaN()
+		return
+	}
+
+	eps := defaultEpsilon
+
+	if len(epsilon) > 0 {
+		eps = epsilon[0]
+	}
+
+	if eps <= 0 {
+		gamma = math.NaN()
+		err = ErrNegativeEpsilon
+		return
+	}
 	if CheckPriceParams(t, x, k, o) != nil {
 		return math.NaN()
 	}

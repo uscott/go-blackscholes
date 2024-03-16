@@ -1,167 +1,137 @@
 package blackscholes
 
 import (
+	"errors"
 	"fmt"
 	"math"
 )
 
 const (
-	tolDefault   float64 = 1.0 / (1 << 30)
-	lbDefault    float64 = 0.01
-	ubDefault    float64 = 1.99
-	MaxItDefault int     = 1000000
+	defaultTolerance     float64 = 1.0 / (1 << 30)
+	defaultUpperBound    float64 = 0.01
+	defaultLowerBound    float64 = 1.99
+	defaultMaxIterations int     = 1000000
 )
 
+var ErrMaxIterations = errors.New("max iterations exceeded")
+
 type ImpliedVolParams struct {
-	Premium      float64
-	TimeToExpiry float64
-	Underlying   float64
-	Strike       float64
-	Rate         float64
-	Dividend     float64
-	Type         OptionType
-	LB           *float64
-	UB           *float64
-	Tol          *float64
-	MaxIt        *int
+	LowerBound    *float64
+	UpperBound    *float64
+	Tolerance     *float64
+	MaxIterations *int
 }
 
-func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
+func ImpliedVol(premium, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, params ...ImpliedVolParams) (vol float64, err error) {
 
-	if pars == nil {
-		return math.NaN(), ErrNilPtrArg
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		vol = math.NaN()
+		return
 	}
 
-	p, t, x, k, r, q := GetFloatVolParams(pars)
-	o := pars.Type
-	if err = CheckPriceParams(t, x, k, o); err != nil {
-		return math.NaN(), err
+	intrinsic := Intrinsic(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	extrinsic := premium - intrinsic
+
+	if math.Abs(extrinsic) <= math.SmallestNonzeroFloat64 {
+		return
 	}
 
-	if t == 0 || x == 0 || k == 0 {
-		return 0, nil
-	}
+	tol, lb, ub, maxit := defaultTolerance, defaultLowerBound, defaultUpperBound, defaultMaxIterations
 
-	intrval := Intrinsic(t, x, k, r, q, o)
-	extrval := p - intrval
-
-	if abs(extrval) <= math.SmallestNonzeroFloat64 {
-		return 0, nil
-	}
-
-	lb, ub, tol, maxit := GetVolSearchParams(pars)
-
-	CheckVolSearchParams(&lb, &ub, &tol, &maxit)
-
-	var (
-		it             int
-		plo, phi, pmid float64
-	)
-	for it = 0; it < maxit; it++ {
-		plo = BSPriceNoErrorCheck(lb, t, x, k, r, q, o)
-		if plo <= p {
-			break
+	if len(params) > 0 {
+		p := params[0]
+		if p.LowerBound != nil {
+			lb = *p.LowerBound
 		}
-		lb -= 0.47
-	}
-	if p < plo {
-		return math.NaN(), fmt.Errorf(
-			"Failed to find lower bound - lb price, lb vol, iters: %v, %v, %d",
-			plo, lb, it,
-		)
-	}
-	for it = 0; it < maxit; it++ {
-		phi = BSPriceNoErrorCheck(ub, t, x, k, r, q, o)
-		if p <= phi {
-			break
+		if p.UpperBound != nil {
+			ub = *p.UpperBound
 		}
-		ub += 0.47
+		if p.Tolerance != nil {
+			tol = *p.Tolerance
+		}
+		if p.MaxIterations != nil {
+			maxit = *p.MaxIterations
+		}
 	}
-	if phi < p {
-		return math.NaN(), fmt.Errorf(
-			"Failed to find upper bound - uprice, uvol, iters: %v, %v, %d",
-			phi, ub, it,
-		)
+
+	vol = math.NaN()
+	var lowPrice, highPrice float64
+
+	lowPrice, err = Price(lb, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	if err != nil {
+		return
 	}
 
-	for it = 0; it < maxit; it++ {
+	highPrice, err = Price(ub, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	if err != nil {
+		return
+	}
 
-		vol = 0.5 * (lb + ub)
-		pmid = BSPriceNoErrorCheck(vol, t, x, k, r, q, o)
+	var it int
+	const boundIncrement float64 = 0.47
 
-		switch {
-		case ub-lb < tol, pmid == p:
-			CorrectVolSign(pmid-intrval, &vol)
+	// Adjust bounds
+	for ; premium < lowPrice || highPrice < premium; it++ {
+		if it > maxit {
+			err = ErrMaxIterations
 			return
-		case p < pmid:
+		}
+		if premium < lowPrice {
+			lb -= boundIncrement
+			lowPrice, err = Price(lb, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+			if err != nil {
+				return
+			}
+		}
+		if highPrice < premium {
+			ub += boundIncrement
+			highPrice, err = Price(ub, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	if premium < lowPrice {
+		err = fmt.Errorf("failed to find lower bound - lower bound price, lower bound vol, iterations: %v, %v, %d", lowPrice, lb, it)
+		return
+	}
+
+	if highPrice < premium {
+		err = fmt.Errorf("failed to find upper bound - upper bound price, upper bound vol, iterations: %v, %v, %d", lowPrice, lb, it)
+		return
+	}
+
+	// Bisection
+	var price float64
+
+	for ; ub-lb > tol; it++ {
+		if it > maxit {
+			vol = math.NaN()
+			err = ErrMaxIterations
+			return
+		}
+		vol = 0.5 * (lb + ub)
+		price, err = Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		if err != nil {
+			vol = math.NaN()
+			return
+		}
+		if premium < price {
 			ub = vol
-		case pmid < p:
+		} else {
 			lb = vol
 		}
 	}
 
-	plo, phi = BSPrice(lb, t, x, k, r, q, o), BSPrice(ub, t, x, k, r, q, o)
-	return math.NaN(), fmt.Errorf(
-		"Did not converge - lb, ub, lb price, ub price, mid, iters: %v, %v, %v, %v, %v, %d",
-		lb, ub, plo, phi, pmid, it,
-	)
-}
+	vol = CorrectVolSign(extrinsic, vol)
 
-func CheckVolSearchParams(lb, ub, tol *float64, maxit *int) {
-
-	if lb == nil || ub == nil || tol == nil || maxit == nil {
-		panic(ErrNilPtrArg)
-	}
-
-	if *ub < *lb {
-		*ub = max(*lb+1, ubDefault)
-	}
-	if *tol <= 0 {
-		*tol = tolDefault
-	}
-	if *maxit <= 0 {
-		*maxit = MaxItDefault
-	}
-}
-
-func CorrectVolSign(extrinsic float64, vol *float64) {
-	if vol == nil {
-		panic(ErrNilPtrArg)
-	}
-	if extrinsic > 0 && *vol < 0 || extrinsic < 0 && *vol > 0 {
-		*vol = -*vol
-		return
-	}
-	if extrinsic == 0 {
-		*vol = 0
-	}
-}
-
-func GetFloatVolParams(pars *ImpliedVolParams) (p, t, x, k, r, q float64) {
-	if pars == nil {
-		panic(ErrNilPtrArg)
-	}
-	p, t, x, k, r, q = pars.Premium, pars.TimeToExpiry,
-		pars.Underlying, pars.Strike, pars.Rate, pars.Dividend
 	return
 }
 
-func GetVolSearchParams(pars *ImpliedVolParams) (lb, ub, tol float64, maxit int) {
-	if pars == nil {
-		panic(ErrNilPtrArg)
+func CorrectVolSign(extrinsic float64, vol float64) float64 {
+	if extrinsic > 0 && vol < 0 || extrinsic < 0 && vol > 0 {
+		return -vol
 	}
-	lb, ub, tol, maxit = lbDefault, ubDefault, tolDefault, MaxItDefault
-	if pars.LB != nil {
-		lb = *pars.LB
-	}
-	if pars.UB != nil {
-		ub = *pars.UB
-	}
-	if pars.Tol != nil {
-		tol = *pars.Tol
-	}
-	if pars.MaxIt != nil {
-		maxit = *pars.MaxIt
-	}
-	return
+	return vol
 }
