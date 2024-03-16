@@ -29,13 +29,13 @@ type ImpliedVolParams struct {
 func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
 
 	if pars == nil {
-		return nan(), ErrNilPtrArg
+		return math.NaN(), ErrNilPtrArg
 	}
 
 	p, t, x, k, r, q := GetFloatVolParams(pars)
 	o := pars.Type
 	if err = CheckPriceParams(t, x, k, o); err != nil {
-		return nan(), err
+		return math.NaN(), err
 	}
 
 	if t == 0 || x == 0 || k == 0 {
@@ -65,7 +65,7 @@ func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
 		lb -= 0.47
 	}
 	if p < plo {
-		return nan(), fmt.Errorf(
+		return math.NaN(), fmt.Errorf(
 			"Failed to find lower bound - lb price, lb vol, iters: %v, %v, %d",
 			plo, lb, it,
 		)
@@ -78,7 +78,7 @@ func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
 		ub += 0.47
 	}
 	if phi < p {
-		return nan(), fmt.Errorf(
+		return math.NaN(), fmt.Errorf(
 			"Failed to find upper bound - uprice, uvol, iters: %v, %v, %d",
 			phi, ub, it,
 		)
@@ -101,7 +101,7 @@ func ImpliedVol(pars *ImpliedVolParams) (vol float64, err error) {
 	}
 
 	plo, phi = BSPrice(lb, t, x, k, r, q, o), BSPrice(ub, t, x, k, r, q, o)
-	return nan(), fmt.Errorf(
+	return math.NaN(), fmt.Errorf(
 		"Did not converge - lb, ub, lb price, ub price, mid, iters: %v, %v, %v, %v, %v, %d",
 		lb, ub, plo, phi, pmid, it,
 	)
