@@ -28,15 +28,6 @@ var (
 	ErrNoncovergence     = errors.New("Did not converge")
 )
 
-var (
-	abs  func(float64) float64          = math.Abs
-	exp  func(float64) float64          = math.Exp
-	inf  func(int) float64              = math.Inf
-	log  func(float64) float64          = math.Log
-	max  func(float64, float64) float64 = math.Max
-	sqrt func(float64) float64          = math.Sqrt
-)
-
 type PriceParams struct {
 	Vol          float64
 	TimeToExpiry float64
@@ -239,7 +230,7 @@ func Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 		return
 	}
 
-	gamma = exp(-dividendYield*timeToExpiry-d1*d1/2) / spot / vol / sqrt(timeToExpiry) * InvSqrt2PI
+	gamma = math.Exp(-dividendYield*timeToExpiry-d1*d1/2) / spot / vol / math.Sqrt(timeToExpiry) * InvSqrt2PI
 
 	if optionType == Straddle {
 		gamma *= 2
@@ -291,9 +282,9 @@ func Theta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 		return
 	}
 
-	spot *= exp(-dividendYield * timeToExpiry)
-	strike *= exp(-interestRate * timeToExpiry)
-	theta = -vol*spot*exp(-d1*d1/2)/2/sqrt(timeToExpiry)*InvSqrt2PI + dividendYield*spot*NormCDF(d1) - interestRate*strike*NormCDF(d2)
+	spot *= math.Exp(-dividendYield * timeToExpiry)
+	strike *= math.Exp(-interestRate * timeToExpiry)
+	theta = -vol*spot*math.Exp(-d1*d1/2)/2/math.Sqrt(timeToExpiry)*InvSqrt2PI + dividendYield*spot*NormCDF(d1) - interestRate*strike*NormCDF(d2)
 
 	if optionType == Straddle {
 		theta *= 2
@@ -324,7 +315,7 @@ func Vega(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, 
 
 	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 
-	vega = spot * exp(-dividendYield*timeToExpiry-0.5*d1*d1) * sqrt(timeToExpiry) * InvSqrt2PI
+	vega = spot * math.Exp(-dividendYield*timeToExpiry-0.5*d1*d1) * math.Sqrt(timeToExpiry) * InvSqrt2PI
 
 	if optionType == Straddle {
 		vega *= 2
@@ -345,7 +336,7 @@ func D2fromD1(d1, vol, timeToExpiry float64) (d2 float64, err error) {
 		return
 	}
 
-	d2 = d1 - vol*sqrt(timeToExpiry)
+	d2 = d1 - vol*math.Sqrt(timeToExpiry)
 	return
 }
 
@@ -368,7 +359,7 @@ func D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d
 		return
 	}
 
-	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / sqrt(timeToExpiry)
+	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(timeToExpiry)
 
 	return
 }
@@ -392,7 +383,7 @@ func D2(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d
 		return
 	}
 
-	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / sqrt(timeToExpiry)
+	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(timeToExpiry)
 
 	return
 }
@@ -417,7 +408,7 @@ func ValidOptionType(o OptionType) bool {
 func ZeroStrikeBSPrice(t, x, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
-		return exp(-q*t) * x
+		return math.Exp(-q*t) * x
 	case Put:
 		return 0
 	}
@@ -429,7 +420,7 @@ func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
 	case Call:
 		return 0
 	case Put, Straddle:
-		return exp(-r*t) * k
+		return math.Exp(-r*t) * k
 	}
 	return math.NaN()
 }
@@ -437,7 +428,7 @@ func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
 func ZeroStrikeBSDelta(t, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
-		return exp(-q * t)
+		return math.Exp(-q * t)
 	case Put:
 		return 0
 	}
@@ -449,15 +440,15 @@ func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
 	case Call:
 		return 0
 	case Put, Straddle:
-		return -exp(-q * t)
+		return -math.Exp(-q * t)
 	}
 	return math.NaN()
 }
 
 func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
 
-	dfq := exp(-q * t)
-	x, k = dfq*x, exp(-r*t)*k
+	dfq := math.Exp(-q * t)
+	x, k = dfq*x, math.Exp(-r*t)*k
 
 	switch o {
 	case Call:
@@ -480,16 +471,16 @@ func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
 }
 
 func ZeroVolBSGamma(t, x, k, r, q float64) float64 {
-	if exp(-q*t)*x-exp(-r*t)*k != 0 {
+	if math.Exp(-q*t)*x-math.Exp(-r*t)*k != 0 {
 		return 0
 	}
-	return inf(1)
+	return math.Inf(1)
 }
 
 func ZeroStrikeBSTheta(t, x, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
-		return q * x * exp(-q*t)
+		return q * x * math.Exp(-q*t)
 	case Put:
 		return 0
 	}
@@ -501,14 +492,14 @@ func ZeroUnderlyingBSTheta(t, k, r float64, o OptionType) float64 {
 	case Call:
 		return 0
 	case Put, Straddle:
-		return r * k * exp(-r*t)
+		return r * k * math.Exp(-r*t)
 	}
 	return math.NaN()
 }
 
 func ZeroVolBSTheta(t, x, k, r, q float64, o OptionType) float64 {
 
-	x, k = exp(-q*t)*x, exp(-r*t)*k
+	x, k = math.Exp(-q*t)*x, math.Exp(-r*t)*k
 
 	switch o {
 	case Call:

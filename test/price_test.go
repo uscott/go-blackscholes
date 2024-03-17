@@ -4,38 +4,44 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_Price(t *testing.T) {
+const (
+	numericEpsilon = 1e-32
+	testEpsilon    = 1e-8
+)
 
-	const N int = 20
-	v, tau, x, k, r, q := 0.5, 1.0/12, 100.0, 120.0, 0.1, 0.05
-	o := bs.Call
+func getTestParams() (vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType bs.OptionType) {
+	vol = 1
+	timeToExpiry = 1
+	spot = 100
+	strike = 100
+	interestRate = 0
+	dividendYield = 0
+	optionType = bs.Call
+	return
+}
 
-	price := bs.BSPrice(v, tau, x, k, r, q, o)
+func TestPrice(t *testing.T) {
 
-	t.Logf("Price = %.2f\n", price)
+	assert := assert.New(t)
 
-	var (
-		nprev   uint
-		simprev float64
-	)
+	actual, err := bs.Price(0, 0, 0, 0, 0, 0, bs.OptionType(' '))
+	assert.Error(err)
+	assert.True(math.IsNaN(actual))
 
-	t.Log("Sim:")
-	for i := 1; i <= N; i++ {
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
 
-		n := uint(1 << i)
-		simprice := bs.BSPriceSim(v, tau, x, k, r, q, o, n)
-		w, wprev := float64(n)/float64(n+nprev), float64(nprev)/float64(n+nprev)
-		simprice = w*simprice + wprev*simprev
-		err := simprice/price - 1
-		nprev += n
-		simprev = simprice
+	actual, err = bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	expected := 7.9655792417
+	assert.NoError(err)
+	assert.InDelta(expected, actual, testEpsilon)
 
-		t.Logf(
-			"Number of randoms = %8d,\tsim price = %6.2f,\t|error| = %8.3f %%\n",
-			nprev, simprice, 100*math.Abs(err))
-	}
-
+	// price1 := actual
+	// price2, err := bs.PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	// assert.NoError(err)
+	// assert.InDelta(price1, price2, testEpsilon)
 }
