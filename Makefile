@@ -3,6 +3,10 @@
 all: setup test
 .PHONY: all
 
+check:
+	golangci-lint run --fix
+.PHONY: check
+
 format:
 	gofmt -l -w -s .
 	golines -w .
@@ -10,6 +14,7 @@ format:
 
 setup:
 	go mod download
+	pre-commit install
 .PHONY: setup
 
 test:
