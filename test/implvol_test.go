@@ -1,4 +1,4 @@
-package implvoltest
+package blackscholes_test
 
 import (
 	"math/rand"

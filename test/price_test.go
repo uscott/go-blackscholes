@@ -1,4 +1,4 @@
-package pricetest
+package blackscholes_test
 
 import (
 	"math"

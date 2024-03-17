@@ -1,4 +1,4 @@
-package gammatest
+package blackscholes_test
 
 import (
 	"math"

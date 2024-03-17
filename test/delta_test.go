@@ -1,4 +1,4 @@
-package deltatest
+package blackscholes_test
 
 import (
 	"math"

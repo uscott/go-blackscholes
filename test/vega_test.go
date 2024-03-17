@@ -1,4 +1,4 @@
-package vegatest
+package blackscholes_test
 
 import (
 	"math"

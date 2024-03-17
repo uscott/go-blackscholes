@@ -1,4 +1,4 @@
-package thetatest
+package blackscholes_test
 
 import (
 	"math"
