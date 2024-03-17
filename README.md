@@ -7,8 +7,8 @@ Edge cases such as e.g. zero volatility implemented exactly.
 Use at your own risk.
 
 ### Install
-```shell script
-go get github.com/uscott/go-blackscholes
+```shell
+go install github.com/uscott/go-blackscholes@latest
 ```
 
 ### Usage
@@ -25,26 +25,18 @@ import (
 
 func main() {
 
-    pars := &bs.PriceParams{
-        Vol:          0.2,
-        TimeToExpiry: 1,
-        Underlying:   100,
-        Strike:       100,
-        Rate:         0.02,
-        Dividend:     0,
-        Type:         bs.Straddle,
-    }
+    vol := 0.2
+    timeToExpiry := 1.0
+    spot := 100.0
+    strike := 100.0
+    interestRate := 0.02
+    dividendYield := 0.01
+    optionType := bs.Straddle
 
-    price, err := bs.Price(par)
+    price, err := bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
     if err != nil {
         panic(err)
     }
-    
-    fmt.Printf("Price: %.2f\n", price)
-    
-    // Version with argument list and no error checking:
-    
-    price = bs.BSPriceNoErrorCheck(0.2, 1, 100, 100, 0.02, 0, bs.Straddle)
     
     fmt.Printf("Price: %.2f\n", price)
 }
