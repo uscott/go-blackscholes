@@ -23,6 +23,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
+        pip install pre-commit
         go get .
         make setup
 
