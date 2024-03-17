@@ -22,7 +22,11 @@ type ImpliedVolParams struct {
 	MaxIterations *int
 }
 
-func ImpliedVol(premium, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, params ...ImpliedVolParams) (vol float64, err error) {
+func ImpliedVol(
+	premium, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	params ...ImpliedVolParams,
+) (vol float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		vol = math.NaN()
@@ -78,14 +82,30 @@ func ImpliedVol(premium, timeToExpiry, spot, strike, interestRate, dividendYield
 		}
 		if premium < lowPrice {
 			lb -= boundIncrement
-			lowPrice, err = Price(lb, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+			lowPrice, err = Price(
+				lb,
+				timeToExpiry,
+				spot,
+				strike,
+				interestRate,
+				dividendYield,
+				optionType,
+			)
 			if err != nil {
 				return
 			}
 		}
 		if highPrice < premium {
 			ub += boundIncrement
-			highPrice, err = Price(ub, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+			highPrice, err = Price(
+				ub,
+				timeToExpiry,
+				spot,
+				strike,
+				interestRate,
+				dividendYield,
+				optionType,
+			)
 			if err != nil {
 				return
 			}
@@ -93,12 +113,22 @@ func ImpliedVol(premium, timeToExpiry, spot, strike, interestRate, dividendYield
 	}
 
 	if premium < lowPrice {
-		err = fmt.Errorf("failed to find lower bound - lower bound price, lower bound vol, iterations: %v, %v, %d", lowPrice, lb, it)
+		err = fmt.Errorf(
+			"failed to find lower bound - lower bound price, lower bound vol, iterations: %v, %v, %d",
+			lowPrice,
+			lb,
+			it,
+		)
 		return
 	}
 
 	if highPrice < premium {
-		err = fmt.Errorf("failed to find upper bound - upper bound price, upper bound vol, iterations: %v, %v, %d", lowPrice, lb, it)
+		err = fmt.Errorf(
+			"failed to find upper bound - upper bound price, upper bound vol, iterations: %v, %v, %d",
+			lowPrice,
+			lb,
+			it,
+		)
 		return
 	}
 

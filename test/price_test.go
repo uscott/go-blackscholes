@@ -49,7 +49,15 @@ func TestPrice(t *testing.T) {
 
 	tolerance = 1e-3
 	price1 := actual
-	price2, err := bs.PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	price2, err := bs.PriceSim(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	assert.NoError(err)
 	assert.InEpsilon(price1, price2, tolerance)
 }

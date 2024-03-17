@@ -21,7 +21,11 @@ func getEpsilon(epsilon ...float64) (eps float64, err error) {
 	return
 }
 
-func DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (delta float64, err error) {
+func DeltaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (delta float64, err error) {
 
 	delta = math.NaN()
 
@@ -34,7 +38,15 @@ func DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 		return
 	}
 
-	upPrice, err := Price(vol, timeToExpiry, spot+eps, strike, interestRate, dividendYield, optionType)
+	upPrice, err := Price(
+		vol,
+		timeToExpiry,
+		spot+eps,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 
 	if err != nil {
 		return
@@ -45,7 +57,15 @@ func DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 		eps *= 2
 	}
 
-	downPrice, err := Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	downPrice, err := Price(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}
@@ -54,7 +74,11 @@ func DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 	return
 }
 
-func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (gamma float64, err error) {
+func GammaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (gamma float64, err error) {
 
 	gamma = math.NaN()
 
@@ -72,7 +96,15 @@ func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 		return
 	}
 
-	deltaUp, err := Delta(vol, timeToExpiry, spot+eps, strike, interestRate, dividendYield, optionType)
+	deltaUp, err := Delta(
+		vol,
+		timeToExpiry,
+		spot+eps,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}
@@ -82,7 +114,15 @@ func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 		eps *= 2
 	}
 
-	deltaDown, err := Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	deltaDown, err := Delta(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}
@@ -92,7 +132,11 @@ func GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 	return
 }
 
-func VegaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (vega float64, err error) {
+func VegaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (vega float64, err error) {
 
 	vega = math.NaN()
 
@@ -105,12 +149,28 @@ func VegaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield fl
 		eps = epsilon[0]
 	}
 
-	priceUp, err := Price(vol+eps, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	priceUp, err := Price(
+		vol+eps,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}
 
-	priceDown, err := Price(vol-eps, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	priceDown, err := Price(
+		vol-eps,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}
@@ -120,7 +180,11 @@ func VegaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield fl
 	return
 }
 
-func ThetaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, epsilon ...float64) (theta float64, err error) {
+func ThetaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (theta float64, err error) {
 
 	theta = math.NaN()
 
@@ -134,7 +198,15 @@ func ThetaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield f
 	}
 
 	// Note the negative sign on eps
-	priceDown, err := Price(vol, timeToExpiry+eps, spot, strike, interestRate, dividendYield, optionType)
+	priceDown, err := Price(
+		vol,
+		timeToExpiry+eps,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	if err != nil {
 		return
 	}

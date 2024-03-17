@@ -47,7 +47,10 @@ type PriceParams struct {
 // dividendYield = continuous dividend yield in same units as t
 // optionType = option type (Call, Put, Straddle)
 
-func Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (price float64, err error) {
+func Price(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) (price float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		price = math.NaN()
@@ -106,7 +109,10 @@ func Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 	return
 }
 
-func Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (delta float64, err error) {
+func Delta(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) (delta float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		delta = math.NaN()
@@ -152,7 +158,14 @@ func Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 	}
 
 	if volIsNegative {
-		zeroVolDelta := ZeroVolBSDelta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		zeroVolDelta := ZeroVolBSDelta(
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
 		delta = zeroVolDelta - (delta - zeroVolDelta)
 	}
 
@@ -161,7 +174,10 @@ func Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 
 // AtmApprox approximates the option price when the spot discounted by the dividend yield
 // is equal to the strike discounted by the interest rate.
-func AtmApprox(vol, timeToExpiry, spot, dividendYield float64, optionType OptionType) (price float64, err error) {
+func AtmApprox(
+	vol, timeToExpiry, spot, dividendYield float64,
+	optionType OptionType,
+) (price float64, err error) {
 
 	if timeToExpiry < 0 {
 		price = math.NaN()
@@ -204,7 +220,10 @@ func CheckPriceParams(timeToExpiry, spot, strike float64, optionType OptionType)
 	return nil
 }
 
-func Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (gamma float64, err error) {
+func Gamma(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) (gamma float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		gamma = math.NaN()
@@ -230,7 +249,11 @@ func Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 		return
 	}
 
-	gamma = math.Exp(-dividendYield*timeToExpiry-d1*d1/2) / spot / vol / math.Sqrt(timeToExpiry) * InvSqrt2PI
+	gamma = math.Exp(
+		-dividendYield*timeToExpiry-d1*d1/2,
+	) / spot / vol / math.Sqrt(
+		timeToExpiry,
+	) * InvSqrt2PI
 
 	if optionType == Straddle {
 		gamma *= 2
@@ -243,7 +266,10 @@ func Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 	return
 }
 
-func Theta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (theta float64, err error) {
+func Theta(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) (theta float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		theta = math.NaN()
@@ -284,20 +310,38 @@ func Theta(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
 
 	spot *= math.Exp(-dividendYield * timeToExpiry)
 	strike *= math.Exp(-interestRate * timeToExpiry)
-	theta = -vol*spot*math.Exp(-d1*d1/2)/2/math.Sqrt(timeToExpiry)*InvSqrt2PI + dividendYield*spot*NormCDF(d1) - interestRate*strike*NormCDF(d2)
+	theta = -vol*spot*math.Exp(
+		-d1*d1/2,
+	)/2/math.Sqrt(
+		timeToExpiry,
+	)*InvSqrt2PI + dividendYield*spot*NormCDF(
+		d1,
+	) - interestRate*strike*NormCDF(
+		d2,
+	)
 
 	if optionType == Straddle {
 		theta *= 2
 	}
 
 	if volIsNegative {
-		theta = 2*ZeroVolBSTheta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType) - theta
+		theta = 2*ZeroVolBSTheta(
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		) - theta
 	}
 
 	return
 }
 
-func Vega(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) (vega float64, err error) {
+func Vega(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) (vega float64, err error) {
 
 	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
 		vega = math.NaN()
@@ -315,7 +359,11 @@ func Vega(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, 
 
 	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 
-	vega = spot * math.Exp(-dividendYield*timeToExpiry-0.5*d1*d1) * math.Sqrt(timeToExpiry) * InvSqrt2PI
+	vega = spot * math.Exp(
+		-dividendYield*timeToExpiry-0.5*d1*d1,
+	) * math.Sqrt(
+		timeToExpiry,
+	) * InvSqrt2PI
 
 	if optionType == Straddle {
 		vega *= 2
@@ -340,7 +388,9 @@ func D2fromD1(d1, vol, timeToExpiry float64) (d2 float64, err error) {
 	return
 }
 
-func D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d1 float64, err error) {
+func D1(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+) (d1 float64, err error) {
 
 	d1 = math.NaN()
 
@@ -359,12 +409,16 @@ func D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d
 		return
 	}
 
-	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(timeToExpiry)
+	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(
+		timeToExpiry,
+	)
 
 	return
 }
 
-func D2(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d2 float64, err error) {
+func D2(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+) (d2 float64, err error) {
 
 	d2 = math.NaN()
 
@@ -383,14 +437,23 @@ func D2(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64) (d
 		return
 	}
 
-	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(timeToExpiry)
+	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(
+		timeToExpiry,
+	)
 
 	return
 }
 
-func Intrinsic(timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType) float64 {
+func Intrinsic(
+	timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+) float64 {
 
-	forwardValue := math.Exp(-dividendYield*timeToExpiry)*spot - math.Exp(-interestRate*timeToExpiry)*strike
+	forwardValue := math.Exp(
+		-dividendYield*timeToExpiry,
+	)*spot - math.Exp(
+		-interestRate*timeToExpiry,
+	)*strike
 
 	switch optionType {
 	case Call:

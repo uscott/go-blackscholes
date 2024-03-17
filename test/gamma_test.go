@@ -22,7 +22,15 @@ func Test_Gamma(t *testing.T) {
 	gamma, err = bs.Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
 	assert.NoError(err)
 
-	gammaNum, err := bs.GammaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	gammaNum, err := bs.GammaNumeric(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	assert.NoError(err)
 
 	assert.InDelta(gamma, gammaNum, tolerance)

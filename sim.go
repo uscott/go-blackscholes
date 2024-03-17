@@ -8,7 +8,11 @@ import (
 
 const defaultNumPaths uint = 10000000
 
-func PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, numPaths ...uint) (price float64, err error) {
+func PriceSim(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	numPaths ...uint,
+) (price float64, err error) {
 
 	npaths := defaultNumPaths
 	if len(numPaths) > 0 {

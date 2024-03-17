@@ -22,7 +22,15 @@ func Test_Delta(t *testing.T) {
 	delta, err = bs.Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
 	assert.NoError(err)
 
-	deltaNum, err := bs.DeltaNumeric(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	deltaNum, err := bs.DeltaNumeric(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
 	assert.NoError(err)
 
 	assert.InDelta(delta, deltaNum, tolerance)
