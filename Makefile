@@ -3,6 +3,10 @@
 all: setup test
 .PHONY: all
 
+check:
+	golangci-lint run --fix
+.PHONY: check
+
 format:
 	gofmt -l -w -s .
 	golines -w .
