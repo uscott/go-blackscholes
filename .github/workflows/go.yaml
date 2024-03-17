@@ -25,6 +25,7 @@ jobs:
       run: |
         pip install pre-commit
         go get .
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
         make setup
 
     - name: Check
