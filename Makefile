@@ -14,6 +14,7 @@ format:
 
 setup:
 	go mod download
+	pre-commit install
 .PHONY: setup
 
 test:

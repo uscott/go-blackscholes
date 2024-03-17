@@ -37,7 +37,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Printf("Price: %.2f\n", price)
 }
 ```
