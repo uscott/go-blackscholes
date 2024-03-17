@@ -5,7 +5,7 @@ all: setup test
 
 format:
 	gofmt -l -w -s .
-	golines .
+	golines -w .
 .PHONY: format
 
 setup:
