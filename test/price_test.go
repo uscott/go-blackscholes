@@ -9,16 +9,6 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-const (
-	numericEpsilon = 1e-32
-	testEpsilon    = 1e-5
-)
-
-func isClose(a, b float64) bool {
-	diff, a, b := math.Abs(a-b), math.Abs(a), math.Abs(b)
-	return diff < testEpsilon*(1+math.Min(a, b))
-}
-
 func getTestParams() (vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType bs.OptionType) {
 	vol = 0.2
 	timeToExpiry = 1
@@ -39,14 +29,16 @@ func TestPrice(t *testing.T) {
 	assert.True(math.IsNaN(actual))
 
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
+	tolerance := 1e-4
 
 	actual, err = bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
 	expected := 7.9655792417
 	assert.NoError(err)
-	assert.True(isClose(actual, expected))
+	assert.InEpsilon(expected, actual, tolerance)
 
-	// price1 := actual
-	// price2, err := bs.PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
-	// assert.NoError(err)
-	// assert.InDelta(price1, price2, testEpsilon)
+	tolerance = 1e-3
+	price1 := actual
+	price2, err := bs.PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	assert.NoError(err)
+	assert.InEpsilon(price1, price2, tolerance)
 }

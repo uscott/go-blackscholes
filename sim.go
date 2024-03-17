@@ -4,10 +4,9 @@ import (
 	"errors"
 	"math"
 	"math/rand"
-	"sync"
 )
 
-const defaultNumPaths uint = 1 << 16
+const defaultNumPaths uint = 10000000
 
 func PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType OptionType, numPaths ...uint) (price float64, err error) {
 
@@ -33,30 +32,17 @@ func PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield float
 	sigma := vol * math.Sqrt(timeToExpiry)
 	mu := -0.5 * sigma * sigma
 
-	mtx, wg := new(sync.Mutex), new(sync.WaitGroup)
-	wg.Add(int(npaths - 1))
-
 	for i := uint(0); i < npaths-1; i += 2 {
 
-		go func() {
+		z := rand.NormFloat64()
 
-			defer mtx.Unlock()
-			mtx.Lock()
+		spot = expectedSpot * math.Exp(mu+sigma*z)
+		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
 
-			defer wg.Done()
+		spot = expectedSpot * math.Exp(mu-sigma*z)
+		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
 
-			z := rand.NormFloat64()
-
-			spot = expectedSpot * math.Exp(mu+sigma*z)
-			sum += Intrinsic(0, spot, strike, 0, 0, optionType)
-
-			spot = expectedSpot * math.Exp(mu-sigma*z)
-			sum += Intrinsic(0, spot, strike, 0, 0, optionType)
-
-		}()
 	}
-
-	wg.Wait()
 
 	if npaths%2 == 1 {
 		z := rand.NormFloat64()

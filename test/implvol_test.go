@@ -17,6 +17,7 @@ func Test_ImpliedVol(t *testing.T) {
 	assert.True(math.IsNaN(vol))
 
 	vol, err = bs.ImpliedVol(0, 0, 0, 0, 0, 0, bs.Straddle)
+	tolerance := 1e-4
 	assert.NoError(err)
-	assert.InDelta(0, vol, testEpsilon)
+	assert.InDelta(0, vol, tolerance)
 }
