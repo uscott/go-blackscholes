@@ -3,7 +3,6 @@ package blackscholes
 import (
 	"errors"
 	"math"
-	"math/rand"
 )
 
 const defaultNumPaths uint = 10000000
@@ -31,14 +30,21 @@ func PriceSim(
 		return
 	}
 
-	sum := 0.0
 	expectedSpot := spot * math.Exp((interestRate-dividendYield)*timeToExpiry)
 	sigma := vol * math.Sqrt(timeToExpiry)
 	mu := -0.5 * sigma * sigma
 
-	for i := uint(0); i < npaths-1; i += 2 {
+	sum := 0.0
 
-		z := rand.NormFloat64()
+	for i := uint(1); i < npaths; i += 2 {
+
+		u := float64(i) / float64(npaths)
+
+		var z float64
+		z, err = NormCDFInverse(u)
+		if err != nil {
+			return
+		}
 
 		spot = expectedSpot * math.Exp(mu+sigma*z)
 		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
@@ -49,8 +55,7 @@ func PriceSim(
 	}
 
 	if npaths%2 == 1 {
-		z := rand.NormFloat64()
-		spot = expectedSpot * math.Exp(mu+sigma*z)
+		spot = expectedSpot * math.Exp(mu)
 		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
 	}
 
