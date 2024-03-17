@@ -8,7 +8,7 @@ Use at your own risk.
 
 ### Install
 ```shell
-go install github.com/uscott/go-blackscholes@latest
+go get github.com/uscott/go-blackscholes@latest
 ```
 
 ### Usage
