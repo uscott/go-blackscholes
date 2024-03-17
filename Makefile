@@ -8,5 +8,5 @@ setup:
 .PHONY: setup
 
 test:
-	go test ./...
+	go test -v ./...
 .PHONY: test
