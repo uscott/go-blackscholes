@@ -1,45 +1,65 @@
 package blackscholes
 
 import (
-	"math/rand"
-	"sync"
-	"time"
+	"errors"
+	"math"
 )
 
-func BSPriceSim(v, t, x, k, r, q float64, o OptionType, n uint) float64 {
+const defaultNumPaths uint = 10000000
 
-	if !ValidOptionType(o) || n == 0 {
-		return nan()
+func PriceSim(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	numPaths ...uint,
+) (price float64, err error) {
+
+	npaths := defaultNumPaths
+	if len(numPaths) > 0 {
+		npaths = numPaths[0]
 	}
 
-	rand.Seed(time.Now().UnixNano())
+	price = math.NaN()
 
-	mu, wg := new(sync.Mutex), new(sync.WaitGroup)
-	sum, x0 := 0.0, exp(-q*t)*x
-	m, s := x0*exp((r-0.5*v*v)*t), v*sqrt(t)
-
-	wg.Add(int(n - 1))
-	for i := 1; i < int(n); i++ {
-		go func(i int) {
-			mu.Lock()
-			u := (float64(i) - 0.5 + rand.Float64()) / float64(n)
-			e := exp(s * NormCDFInverse(u))
-			x = m * e
-			sum += Intrinsic(0, x, k, 0, 0, o)
-			x = m / e
-			sum += Intrinsic(0, x, k, 0, 0, o)
-			mu.Unlock()
-			wg.Done()
-		}(i)
+	if npaths == 0 {
+		err = errors.New("number of paths must be positive")
+		return
 	}
-	wg.Wait()
 
-	u := 0.5 * rand.Float64() / float64(n)
-	e := exp(s * NormCDFInverse(u))
-	x = m * e
-	sum += Intrinsic(0, x, k, 0, 0, o)
-	x = m / e
-	sum += Intrinsic(0, x, k, 0, 0, o)
+	if !ValidOptionType(optionType) {
+		err = ErrUnknownOptionType
+		return
+	}
 
-	return exp(-r*t) * sum / float64(2*n)
+	expectedSpot := spot * math.Exp((interestRate-dividendYield)*timeToExpiry)
+	sigma := vol * math.Sqrt(timeToExpiry)
+	mu := -0.5 * sigma * sigma
+
+	sum := 0.0
+
+	for i := uint(1); i < npaths; i += 2 {
+
+		u := float64(i) / float64(npaths)
+
+		var z float64
+		z, err = NormCDFInverse(u)
+		if err != nil {
+			return
+		}
+
+		spot = expectedSpot * math.Exp(mu+sigma*z)
+		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
+
+		spot = expectedSpot * math.Exp(mu-sigma*z)
+		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
+
+	}
+
+	if npaths%2 == 1 {
+		spot = expectedSpot * math.Exp(mu)
+		sum += Intrinsic(0, spot, strike, 0, 0, optionType)
+	}
+
+	price = math.Exp(-interestRate*timeToExpiry) * sum / float64(npaths)
+
+	return
 }

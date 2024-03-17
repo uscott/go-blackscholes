@@ -1,81 +1,227 @@
 package blackscholes
 
-func BSDeltaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+import (
+	"math"
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+	"github.com/pkg/errors"
+)
+
+const defaultEpsilon float64 = 1.0 / (1 << 30)
+
+var ErrNegativeEpsilon = errors.New("epsilon must be positive")
+
+func getEpsilon(epsilon ...float64) (eps float64, err error) {
+	eps = defaultEpsilon
+	if len(epsilon) > 0 {
+		eps = epsilon[0]
 	}
-
-	e := abs(eps)
-	pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
-
-	if x < e {
-		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		pd := ZeroUnderlyingBSPrice(t, k, r, o)
-		cu, cm, cd := x/e/(e+x), (e-x)/e/x, -e/x/(e+x)
-		return cu*pu + cm*pm + cd*pd
+	if eps <= 0 {
+		err = ErrNegativeEpsilon
 	}
-
-	pd := BSPriceNoErrorCheck(v, t, x-e, k, r, q, o)
-
-	return (pu - pd) / 2 / e
+	return
 }
 
-func BSGammaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+func DeltaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (delta float64, err error) {
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+	delta = math.NaN()
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		return
 	}
 
-	e := abs(eps)
-
-	if x < e {
-		pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
-		px := BSPriceNoErrorCheck(v, t, 2*x, k, r, q, o)
-		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		pd := ZeroUnderlyingBSPrice(t, k, r, o)
-		cu, cx := 2*x/(e*e)/(e+x), 2*(e-x)/e/(x*x)
-		cm := -2 * (x*x*x + 2*e*e*e) / (x * x) / (e * e) / (e + x)
-		cd := 2 * (e*e + x*x) / (x * x) / (e * e) / (e + x)
-		return cu*pu + cx*px + cm*pm + cd*pd
+	eps, err := getEpsilon(epsilon...)
+	if err != nil {
+		return
 	}
-	pu := BSPriceNoErrorCheck(v, t, x+e, k, r, q, o)
-	pd := BSPriceNoErrorCheck(v, t, x-e, k, r, q, o)
-	pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
 
-	return (pu - 2*pm + pd) / (e * e)
+	upPrice, err := Price(
+		vol,
+		timeToExpiry,
+		spot+eps,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+
+	if err != nil {
+		return
+	}
+
+	if spot > eps {
+		spot -= eps
+		eps *= 2
+	}
+
+	downPrice, err := Price(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
+
+	delta = (upPrice - downPrice) / eps
+	return
 }
 
-func BSVegaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+func GammaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (gamma float64, err error) {
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+	gamma = math.NaN()
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		return
 	}
 
-	pu := BSPriceNoErrorCheck(v+eps, t, x, k, r, q, o)
-	pd := BSPriceNoErrorCheck(v-eps, t, x, k, r, q, o)
+	eps := defaultEpsilon
+	if len(epsilon) > 0 {
+		eps = epsilon[0]
+	}
 
-	return (pu - pd) / 2 / eps
+	if eps <= 0 {
+		err = ErrNegativeEpsilon
+		return
+	}
+
+	deltaUp, err := Delta(
+		vol,
+		timeToExpiry,
+		spot+eps,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
+
+	if spot > eps {
+		spot -= eps
+		eps *= 2
+	}
+
+	deltaDown, err := Delta(
+		vol,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
+
+	gamma = (deltaUp - deltaDown) / eps
+
+	return
 }
 
-func BSThetaNum(v, t, x, k, r, q float64, o OptionType, eps float64) float64 {
+func VegaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (vega float64, err error) {
 
-	if CheckPriceParams(t, x, k, o) != nil {
-		return nan()
+	vega = math.NaN()
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		return
 	}
 
-	e := abs(eps)
-
-	if t < e {
-		pu := Intrinsic(0, x, k, 0, 0, o)
-		pm := BSPriceNoErrorCheck(v, t, x, k, r, q, o)
-		pd := BSPriceNoErrorCheck(v, t+e, x, k, r, q, o)
-		cu, cm, cd := x/e/(e+x), (e-x)/e/x, -e/x/(e+x)
-		return cu*pu + cm*pm + cd*pd
+	eps := defaultEpsilon
+	if len(epsilon) > 0 {
+		eps = epsilon[0]
 	}
 
-	pu := BSPriceNoErrorCheck(v, t-e, x, k, r, q, o)
-	pd := BSPriceNoErrorCheck(v, t+e, x, k, r, q, o)
+	priceUp, err := Price(
+		vol+eps,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
 
-	return (pu - pd) / 2 / e
+	priceDown, err := Price(
+		vol-eps,
+		timeToExpiry,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
+
+	vega = 0.5 * (priceUp - priceDown) / eps
+
+	return
+}
+
+func ThetaNumeric(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+	optionType OptionType,
+	epsilon ...float64,
+) (theta float64, err error) {
+
+	theta = math.NaN()
+
+	if err = CheckPriceParams(timeToExpiry, spot, strike, optionType); err != nil {
+		return
+	}
+
+	eps, err := getEpsilon(epsilon...)
+	if err != nil {
+		return
+	}
+
+	// Note the negative sign on eps
+	priceDown, err := Price(
+		vol,
+		timeToExpiry+eps,
+		spot,
+		strike,
+		interestRate,
+		dividendYield,
+		optionType,
+	)
+	if err != nil {
+		return
+	}
+
+	if timeToExpiry > eps {
+		timeToExpiry -= eps
+		eps *= 2
+	}
+
+	priceUp, err := Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	if err != nil {
+		return
+	}
+
+	theta = (priceUp - priceDown) / eps
+
+	return
 }
