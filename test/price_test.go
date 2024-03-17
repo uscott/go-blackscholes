@@ -36,6 +36,17 @@ func TestPrice(t *testing.T) {
 	assert.NoError(err)
 	assert.InEpsilon(expected, actual, tolerance)
 
+	optionType = bs.Put
+	actual, err = bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	assert.NoError(err)
+	assert.InEpsilon(expected, actual, tolerance)
+
+	optionType = bs.Straddle
+	expected *= 2
+	actual, err = bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+	assert.NoError(err)
+	assert.InEpsilon(expected, actual, tolerance)
+
 	tolerance = 1e-3
 	price1 := actual
 	price2, err := bs.PriceSim(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
