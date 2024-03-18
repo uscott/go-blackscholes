@@ -17,21 +17,23 @@ func TestGamma(t *testing.T) {
 	assert.True(math.IsNaN(gamma))
 
 	tolerance := 1e-4
-	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
-	gamma, err = blackscholes.Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
-	assert.NoError(err)
+	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {
+		gamma, err = blackscholes.Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		assert.NoError(err)
 
-	gammaNum, err := blackscholes.GammaNumeric(
-		vol,
-		timeToExpiry,
-		spot,
-		strike,
-		interestRate,
-		dividendYield,
-		optionType,
-	)
-	assert.NoError(err)
+		gammaNum, err := blackscholes.GammaNumeric(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
 
-	assert.InDelta(gamma, gammaNum, tolerance)
+		assert.InDelta(gamma, gammaNum, tolerance)
+	}
 }
