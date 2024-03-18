@@ -59,10 +59,10 @@ func Price(
 
 	switch {
 	case spot == 0:
-		price = ZeroUnderlyingBSPrice(timeToExpiry, strike, interestRate, optionType)
+		price = PriceZeroSpot(timeToExpiry, strike, interestRate, optionType)
 		return
 	case strike == 0:
-		price = ZeroStrikeBSPrice(timeToExpiry, spot, dividendYield, optionType)
+		price = PriceZeroStrike(timeToExpiry, spot, dividendYield, optionType)
 		return
 	case vol == 0:
 		price = Intrinsic(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
@@ -121,13 +121,13 @@ func Delta(
 
 	switch {
 	case spot == 0:
-		delta = ZeroUnderlyingBSDelta(timeToExpiry, dividendYield, optionType)
+		delta = DeltaZeroSpot(timeToExpiry, dividendYield, optionType)
 		return
 	case strike == 0:
-		delta = ZeroStrikeBSDelta(timeToExpiry, spot, optionType)
+		delta = DeltaZeroStrike(timeToExpiry, spot, optionType)
 		return
 	case vol == 0:
-		delta = ZeroVolBSDelta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		delta = DeltaZeroVol(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
 		return
 	}
 
@@ -158,7 +158,7 @@ func Delta(
 	}
 
 	if volIsNegative {
-		zeroVolDelta := ZeroVolBSDelta(
+		zeroVolDelta := DeltaZeroVol(
 			timeToExpiry,
 			spot,
 			strike,
@@ -468,7 +468,7 @@ func ValidOptionType(o OptionType) bool {
 	return o == Call || o == Put || o == Straddle
 }
 
-func ZeroStrikeBSPrice(t, x, q float64, o OptionType) float64 {
+func PriceZeroStrike(t, x, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
 		return math.Exp(-q*t) * x
@@ -478,7 +478,7 @@ func ZeroStrikeBSPrice(t, x, q float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
+func PriceZeroSpot(t, k, r float64, o OptionType) float64 {
 	switch o {
 	case Call:
 		return 0
@@ -488,7 +488,7 @@ func ZeroUnderlyingBSPrice(t, k, r float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroStrikeBSDelta(t, q float64, o OptionType) float64 {
+func DeltaZeroStrike(t, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
 		return math.Exp(-q * t)
@@ -498,7 +498,7 @@ func ZeroStrikeBSDelta(t, q float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
+func DeltaZeroSpot(t, q float64, o OptionType) float64 {
 	switch o {
 	case Call:
 		return 0
@@ -508,7 +508,7 @@ func ZeroUnderlyingBSDelta(t, q float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroVolBSDelta(t, x, k, r, q float64, o OptionType) float64 {
+func DeltaZeroVol(t, x, k, r, q float64, o OptionType) float64 {
 
 	dfq := math.Exp(-q * t)
 	x, k = dfq*x, math.Exp(-r*t)*k
