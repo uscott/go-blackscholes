@@ -507,17 +507,26 @@ func DeltaZeroVol(t, x, k, r, q float64, o OptionType) float64 {
 		if x < k {
 			return 0
 		}
-		return dfq
+		if x > k {
+			return dfq
+		}
+		return 0.5 * dfq // Convention to match numeric delta
 	case Put:
 		if x < k {
 			return -dfq
 		}
-		return 0
+		if x > k {
+			return 0
+		}
+		return -0.5 * dfq // Convention to match numeric delta
 	case Straddle:
 		if x < k {
 			return -dfq
 		}
-		return dfq
+		if x > k {
+			return dfq
+		}
+		return 0 // Convention to match numeric delta
 	}
 	return math.NaN()
 }

@@ -43,3 +43,33 @@ func TestDelta(t *testing.T) {
 		assert.InDelta(delta, deltaNum, tolerance)
 	}
 }
+
+func TestDeltaZeroVol(t *testing.T) {
+
+	assert := assert.New(t)
+	tolerance := defaultTolerance
+
+	_, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
+
+	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {
+		delta := blackscholes.DeltaZeroVol(
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		deltaNum, err := blackscholes.DeltaNumeric(
+			0,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
+		assert.InDelta(delta, deltaNum, tolerance)
+	}
+}
