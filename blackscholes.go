@@ -235,7 +235,7 @@ func Gamma(
 		gamma = 0
 		return
 	case vol == 0:
-		gamma = ZeroVolBSGamma(timeToExpiry, spot, strike, interestRate, dividendYield)
+		gamma = GammaZeroVol(timeToExpiry, spot, strike, interestRate, dividendYield)
 		return
 	}
 
@@ -260,7 +260,7 @@ func Gamma(
 	}
 
 	if volIsNegative {
-		gamma = 2*ZeroVolBSGamma(timeToExpiry, spot, strike, interestRate, dividendYield) - gamma
+		gamma = 2*GammaZeroVol(timeToExpiry, spot, strike, interestRate, dividendYield) - gamma
 	}
 
 	return
@@ -278,13 +278,13 @@ func Theta(
 
 	switch {
 	case spot == 0:
-		theta = ZeroUnderlyingBSTheta(timeToExpiry, strike, interestRate, optionType)
+		theta = ThetaZeroSpot(timeToExpiry, strike, interestRate, optionType)
 		return
 	case strike == 0:
-		theta = ZeroStrikeBSTheta(timeToExpiry, spot, dividendYield, optionType)
+		theta = ThetaZeroStrike(timeToExpiry, spot, dividendYield, optionType)
 		return
 	case vol == 0:
-		theta = ZeroVolBSTheta(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		theta = ThetaZeroVol(timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
 		return
 	case timeToExpiry == 0:
 		theta = math.Inf(-1)
@@ -325,7 +325,7 @@ func Theta(
 	}
 
 	if volIsNegative {
-		theta = 2*ZeroVolBSTheta(
+		theta = 2*ThetaZeroVol(
 			timeToExpiry,
 			spot,
 			strike,
@@ -533,14 +533,14 @@ func DeltaZeroVol(t, x, k, r, q float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroVolBSGamma(t, x, k, r, q float64) float64 {
+func GammaZeroVol(t, x, k, r, q float64) float64 {
 	if math.Exp(-q*t)*x-math.Exp(-r*t)*k != 0 {
 		return 0
 	}
 	return math.Inf(1)
 }
 
-func ZeroStrikeBSTheta(t, x, q float64, o OptionType) float64 {
+func ThetaZeroStrike(t, x, q float64, o OptionType) float64 {
 	switch o {
 	case Call, Straddle:
 		return q * x * math.Exp(-q*t)
@@ -550,7 +550,7 @@ func ZeroStrikeBSTheta(t, x, q float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroUnderlyingBSTheta(t, k, r float64, o OptionType) float64 {
+func ThetaZeroSpot(t, k, r float64, o OptionType) float64 {
 	switch o {
 	case Call:
 		return 0
@@ -560,7 +560,7 @@ func ZeroUnderlyingBSTheta(t, k, r float64, o OptionType) float64 {
 	return math.NaN()
 }
 
-func ZeroVolBSTheta(t, x, k, r, q float64, o OptionType) float64 {
+func ThetaZeroVol(t, x, k, r, q float64, o OptionType) float64 {
 
 	x, k = math.Exp(-q*t)*x, math.Exp(-r*t)*k
 
