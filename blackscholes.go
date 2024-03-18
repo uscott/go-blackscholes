@@ -28,14 +28,23 @@ var (
 	ErrNoncovergence     = errors.New("Did not converge")
 )
 
-type PriceParams struct {
-	Vol          float64
-	TimeToExpiry float64
-	Underlying   float64
-	Strike       float64
-	Rate         float64
-	Dividend     float64
-	Type         OptionType
+// CheckPriceParams checks whether timeToExpiry, spot, and strike are non-negative, and
+// optionType is one of the defined OptionType constants
+func CheckPriceParams(timeToExpiry, spot, strike float64, optionType OptionType) error {
+
+	if !ValidOptionType(optionType) {
+		return ErrUnknownOptionType
+	}
+
+	switch {
+	case timeToExpiry < 0:
+		return ErrNegTimeToExp
+	case spot < 0:
+		return ErrNegPrice
+	case strike < 0:
+		return ErrNegStrike
+	}
+	return nil
 }
 
 // Price returns the Black Scholes option price.
@@ -199,25 +208,6 @@ func AtmApprox(
 	}
 
 	return
-}
-
-// CheckPriceParams checks whether timeToExpiry, spot, and strike are non-negative, and
-// optionType is one of the defined OptionType constants
-func CheckPriceParams(timeToExpiry, spot, strike float64, optionType OptionType) error {
-
-	if !ValidOptionType(optionType) {
-		return ErrUnknownOptionType
-	}
-
-	switch {
-	case timeToExpiry < 0:
-		return ErrNegTimeToExp
-	case spot < 0:
-		return ErrNegPrice
-	case strike < 0:
-		return ErrNegStrike
-	}
-	return nil
 }
 
 func Gamma(
