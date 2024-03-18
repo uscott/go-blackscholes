@@ -16,8 +16,8 @@ func getTestParams() (vol, timeToExpiry, spot, strike, interestRate, dividendYie
 	timeToExpiry = 1
 	spot = 100
 	strike = 100
-	interestRate = 0
-	dividendYield = 0
+	interestRate = 0.05
+	dividendYield = 0.01
 	optionType = blackscholes.Call
 	return
 }
@@ -33,6 +33,7 @@ func TestPrice(t *testing.T) {
 
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
 
+	expected := 9.8262858235
 	actual, err = blackscholes.Price(
 		vol,
 		timeToExpiry,
@@ -42,10 +43,10 @@ func TestPrice(t *testing.T) {
 		dividendYield,
 		optionType,
 	)
-	expected := 7.9655792417
 	assert.NoError(err)
 	assert.InEpsilon(expected, actual, tolerance)
 
+	expected = 5.9442448987
 	optionType = blackscholes.Put
 	actual, err = blackscholes.Price(
 		vol,
@@ -59,8 +60,8 @@ func TestPrice(t *testing.T) {
 	assert.NoError(err)
 	assert.InEpsilon(expected, actual, tolerance)
 
+	expected = 15.7705307222
 	optionType = blackscholes.Straddle
-	expected *= 2
 	actual, err = blackscholes.Price(
 		vol,
 		timeToExpiry,
