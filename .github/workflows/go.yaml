@@ -10,8 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -22,6 +21,8 @@ jobs:
     - name: Display Go version
       run: go version
     - name: Install Dependencies
-      run: go get . && go mod download
+      run: go get .
+    - name: Build
+      run: go build -v ./...
     - name: Test
       run: make test
