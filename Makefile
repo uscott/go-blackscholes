@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-all: setup test
+all: setup check test
 .PHONY: all
 
 check:
