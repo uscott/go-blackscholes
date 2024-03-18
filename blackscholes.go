@@ -47,6 +47,10 @@ func CheckPriceParams(timeToExpiry, spot, strike float64, optionType OptionType)
 	return nil
 }
 
+func ValidOptionType(optionType OptionType) bool {
+	return optionType == Call || optionType == Put || optionType == Straddle
+}
+
 // Price returns the Black Scholes option price.
 // vol = volatility in same units as timeToExpiry
 // timeToExpiry = time to expiry
@@ -188,23 +192,22 @@ func AtmApprox(
 	optionType OptionType,
 ) (price float64, err error) {
 
+	price = math.NaN()
+
 	if timeToExpiry < 0 {
-		price = math.NaN()
 		err = ErrNegTimeToExp
 		return
 	}
 
-	vol *= math.Sqrt(timeToExpiry)
-	spot *= math.Exp(-dividendYield * timeToExpiry)
-
-	switch optionType {
-	case Call, Put:
-		price = spot * vol * InvSqrt2PI
-	case Straddle:
-		price = 2 * spot * vol * InvSqrt2PI
-	default:
-		price = math.NaN()
+	if !ValidOptionType(optionType) {
 		err = ErrUnknownOptionType
+		return
+	}
+
+	price = math.Exp(-dividendYield*timeToExpiry) * spot * vol * math.Sqrt(timeToExpiry) * InvSqrt2PI
+
+	if optionType == Straddle {
+		price *= 2
 	}
 
 	return
@@ -452,10 +455,6 @@ func Intrinsic(
 		return math.Max(0, -forwardValue)
 	}
 	return math.Abs(forwardValue)
-}
-
-func ValidOptionType(o OptionType) bool {
-	return o == Call || o == Put || o == Straddle
 }
 
 func PriceZeroStrike(t, x, q float64, o OptionType) float64 {
