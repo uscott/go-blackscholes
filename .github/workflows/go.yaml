@@ -22,7 +22,7 @@ jobs:
         go-version: '1.22.x'
 
     - name: Install Dependencies
-      run: go get .
+      run: go get . && go mod download
 
     - name: Test
       run: make test
