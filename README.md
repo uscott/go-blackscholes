@@ -31,9 +31,9 @@ func main() {
     strike := 100.0
     interestRate := 0.02
     dividendYield := 0.01
-    optionType := bs.Straddle
+    optionType := blackscholes.Straddle
 
-    price, err := bs.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+    price, err := blackscholes.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
     if err != nil {
         panic(err)
     }

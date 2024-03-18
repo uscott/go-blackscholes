@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	bs "github.com/uscott/go-blackscholes"
+	"github.com/uscott/go-blackscholes"
 )
 
 func TestVega(t *testing.T) {
 
 	assert := assert.New(t)
 
-	vega, err := bs.Vega(0, 0, 0, 0, 0, 0, bs.OptionType(' '))
+	vega, err := blackscholes.Vega(0, 0, 0, 0, 0, 0, blackscholes.OptionType(' '))
 	assert.Error(err)
 	assert.True(math.IsNaN(vega))
 }
