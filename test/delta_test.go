@@ -5,33 +5,41 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	bs "github.com/uscott/go-blackscholes"
+	"github.com/uscott/go-blackscholes"
 )
 
-func Test_Delta(t *testing.T) {
+func TestDelta(t *testing.T) {
 
 	assert := assert.New(t)
+	tolerance := defaultTolerance
 
-	delta, err := bs.Delta(0, 0, 0, 0, 0, 0, bs.OptionType(' '))
+	delta, err := blackscholes.Delta(0, 0, 0, 0, 0, 0, blackscholes.OptionType(' '))
 	assert.Error(err)
 	assert.True(math.IsNaN(delta))
 
-	tolerance := 1e-4
-	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
-	delta, err = bs.Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
-	assert.NoError(err)
-
-	deltaNum, err := bs.DeltaNumeric(
-		vol,
-		timeToExpiry,
-		spot,
-		strike,
-		interestRate,
-		dividendYield,
-		optionType,
-	)
-	assert.NoError(err)
-
-	assert.InDelta(delta, deltaNum, tolerance)
+	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {
+		delta, err = blackscholes.Delta(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
+		deltaNum, err := blackscholes.DeltaNumeric(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
+		assert.InDelta(delta, deltaNum, tolerance)
+	}
 }
