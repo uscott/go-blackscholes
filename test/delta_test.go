@@ -11,12 +11,12 @@ import (
 func TestDelta(t *testing.T) {
 
 	assert := assert.New(t)
+	tolerance := defaultTolerance
 
 	delta, err := blackscholes.Delta(0, 0, 0, 0, 0, 0, blackscholes.OptionType(' '))
 	assert.Error(err)
 	assert.True(math.IsNaN(delta))
 
-	tolerance := 1e-4
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
 	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {

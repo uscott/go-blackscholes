@@ -20,7 +20,15 @@ func TestGamma(t *testing.T) {
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
 	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {
-		gamma, err = blackscholes.Gamma(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		gamma, err = blackscholes.Gamma(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
 		assert.NoError(err)
 
 		gammaNum, err := blackscholes.GammaNumeric(

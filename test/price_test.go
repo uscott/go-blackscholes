@@ -9,6 +9,8 @@ import (
 	"github.com/uscott/go-blackscholes"
 )
 
+const defaultTolerance float64 = 1e-4
+
 func getTestParams() (vol, timeToExpiry, spot, strike, interestRate, dividendYield float64, optionType blackscholes.OptionType) {
 	vol = 0.2
 	timeToExpiry = 1
@@ -23,13 +25,13 @@ func getTestParams() (vol, timeToExpiry, spot, strike, interestRate, dividendYie
 func TestPrice(t *testing.T) {
 
 	assert := assert.New(t)
+	tolerance := defaultTolerance
 
 	actual, err := blackscholes.Price(0, 0, 0, 0, 0, 0, blackscholes.OptionType(' '))
 	assert.Error(err)
 	assert.True(math.IsNaN(actual))
 
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
-	tolerance := 1e-4
 
 	actual, err = blackscholes.Price(
 		vol,
