@@ -8,7 +8,7 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_ImpliedVol(t *testing.T) {
+func TestImpliedVol(t *testing.T) {
 
 	assert := assert.New(t)
 

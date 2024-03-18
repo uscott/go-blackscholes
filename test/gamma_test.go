@@ -8,7 +8,7 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_Gamma(t *testing.T) {
+func TestGamma(t *testing.T) {
 
 	assert := assert.New(t)
 

@@ -8,7 +8,7 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_Theta(t *testing.T) {
+func TestTheta(t *testing.T) {
 
 	assert := assert.New(t)
 

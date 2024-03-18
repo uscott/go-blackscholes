@@ -8,7 +8,7 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_Vega(t *testing.T) {
+func TestVega(t *testing.T) {
 
 	assert := assert.New(t)
 

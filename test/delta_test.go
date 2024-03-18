@@ -8,7 +8,7 @@ import (
 	bs "github.com/uscott/go-blackscholes"
 )
 
-func Test_Delta(t *testing.T) {
+func TestDelta(t *testing.T) {
 
 	assert := assert.New(t)
 
@@ -17,21 +17,29 @@ func Test_Delta(t *testing.T) {
 	assert.True(math.IsNaN(delta))
 
 	tolerance := 1e-4
-	vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType := getTestParams()
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
-	delta, err = bs.Delta(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
-	assert.NoError(err)
-
-	deltaNum, err := bs.DeltaNumeric(
-		vol,
-		timeToExpiry,
-		spot,
-		strike,
-		interestRate,
-		dividendYield,
-		optionType,
-	)
-	assert.NoError(err)
-
-	assert.InDelta(delta, deltaNum, tolerance)
+	for _, optionType := range []bs.OptionType{bs.Call, bs.Put, bs.Straddle} {
+		delta, err = bs.Delta(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
+		deltaNum, err := bs.DeltaNumeric(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
+		assert.NoError(err)
+		assert.InDelta(delta, deltaNum, tolerance)
+	}
 }
