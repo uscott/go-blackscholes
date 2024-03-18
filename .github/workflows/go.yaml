@@ -22,7 +22,7 @@ jobs:
         go-version: '1.22.x'
 
     - name: Install Dependencies
-      run: make setup
+      run: go get .
 
     - name: Test
       run: make test
