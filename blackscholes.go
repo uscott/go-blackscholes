@@ -204,7 +204,11 @@ func AtmApprox(
 		return
 	}
 
-	price = math.Exp(-dividendYield*timeToExpiry) * spot * vol * math.Sqrt(timeToExpiry) * InvSqrt2PI
+	price = math.Exp(
+		-dividendYield*timeToExpiry,
+	) * spot * vol * math.Sqrt(
+		timeToExpiry,
+	) * InvSqrt2PI
 
 	if optionType == Straddle {
 		price *= 2

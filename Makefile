@@ -5,6 +5,7 @@ all: setup check test
 
 check:
 	golangci-lint run --fix
+	test -z "$(shell golines -l .)"
 .PHONY: check
 
 format:
