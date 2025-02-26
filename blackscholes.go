@@ -262,8 +262,7 @@ func Gamma(
 	volIsNegative := vol < 0
 	vol = math.Abs(vol)
 
-	var d1 float64
-	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	d1, _, err := getd1d2(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 	if err != nil {
 		gamma = math.NaN()
 		return
@@ -314,15 +313,7 @@ func Theta(
 	volIsNegative := vol < 0
 	vol = math.Abs(vol)
 
-	var d1, d2 float64
-
-	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
-	if err != nil {
-		theta = math.NaN()
-		return
-	}
-
-	d2, err = D2fromD1(d1, vol, timeToExpiry)
+	d1, d2, err := getd1d2(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 	if err != nil {
 		theta = math.NaN()
 		return
@@ -375,9 +366,7 @@ func Vega(
 	volIsNegative := vol < 0
 	vol = math.Abs(vol)
 
-	var d1 float64
-
-	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	d1, _, err := getd1d2(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 
 	vega = spot * math.Exp(
 		-dividendYield*timeToExpiry-0.5*d1*d1,
@@ -392,76 +381,6 @@ func Vega(
 	if volIsNegative {
 		vega *= -1
 	}
-
-	return
-}
-
-func D2fromD1(d1, vol, timeToExpiry float64) (d2 float64, err error) {
-
-	if timeToExpiry < 0 {
-		err = ErrNegTimeToExp
-		d2 = math.NaN()
-		return
-	}
-
-	d2 = d1 - vol*math.Sqrt(timeToExpiry)
-	return
-}
-
-func D1(
-	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
-) (d1 float64, err error) {
-
-	d1 = math.NaN()
-
-	if timeToExpiry < 0 {
-		err = ErrNegTimeToExp
-		return
-	}
-
-	if vol < 0 {
-		err = ErrNegVol
-		return
-	}
-
-	if spot <= 0 || strike <= 0 {
-		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
-		return
-	}
-
-	spot *= math.Exp(-dividendYield * timeToExpiry)
-	strike *= math.Exp(-interestRate * timeToExpiry)
-	vol *= math.Sqrt(timeToExpiry)
-
-	d1 = math.Log(spot/strike)/vol + 0.5*vol
-
-	return
-}
-
-func D2(
-	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
-) (d2 float64, err error) {
-
-	d2 = math.NaN()
-
-	if timeToExpiry < 0 {
-		err = ErrNegTimeToExp
-		return
-	}
-
-	if vol < 0 {
-		err = ErrNegVol
-		return
-	}
-
-	if strike <= 0 || spot <= 0 {
-		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
-		return
-	}
-
-	d2 = (math.Log(spot/strike) + (interestRate-dividendYield-0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(
-		timeToExpiry,
-	)
 
 	return
 }
