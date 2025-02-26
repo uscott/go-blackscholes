@@ -41,6 +41,6 @@ func TestVega(t *testing.T) {
 			optionType,
 		)
 		assert.NoError(err)
-		assert.InDelta(vega, vegaNum, tolerance)
+		assert.InEpsilon(vega, vegaNum, tolerance)
 	}
 }

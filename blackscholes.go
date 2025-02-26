@@ -269,10 +269,10 @@ func Gamma(
 	}
 
 	gamma = math.Exp(
-		-dividendYield*timeToExpiry-d1*d1/2,
-	) / spot / vol / math.Sqrt(
-		timeToExpiry,
-	) * InvSqrt2PI
+		-dividendYield*timeToExpiry,
+	) * NormPDF(
+		d1,
+	) / (spot * vol * math.Sqrt(timeToExpiry))
 
 	if optionType == Straddle {
 		gamma *= 2
@@ -321,18 +321,34 @@ func Theta(
 
 	spot *= math.Exp(-dividendYield * timeToExpiry)
 	strike *= math.Exp(-interestRate * timeToExpiry)
-	theta = -vol*spot*math.Exp(
-		-d1*d1/2,
-	)/2/math.Sqrt(
-		timeToExpiry,
-	)*InvSqrt2PI + dividendYield*spot*NormCDF(
-		d1,
-	) - interestRate*strike*NormCDF(
-		d2,
-	)
 
-	if optionType == Straddle {
-		theta *= 2
+	switch optionType {
+	case Call:
+		theta = -0.5*vol*spot*NormPDF(
+			d1,
+		)/math.Sqrt(
+			timeToExpiry,
+		) - interestRate*strike*NormCDF(
+			d2,
+		) + dividendYield*spot*NormCDF(
+			d1,
+		)
+	case Put:
+		theta = -0.5*vol*spot*NormPDF(
+			d1,
+		)*math.Sqrt(
+			timeToExpiry,
+		) + interestRate*strike*NormCDF(
+			-d2,
+		) - dividendYield*spot*NormCDF(
+			-d1,
+		)
+	case Straddle:
+		theta = -vol*spot*NormPDF(
+			d1,
+		)/math.Sqrt(
+			timeToExpiry,
+		) - interestRate*strike*(NormCDF(d2)-NormCDF(-d2)) + dividendYield*spot*(NormCDF(d1)-NormCDF(-d1))
 	}
 
 	if volIsNegative {

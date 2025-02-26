@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const defaultEpsilon float64 = 1.0 / (1 << 30)
+const defaultEpsilon float64 = 1e-2
 
 var ErrNegativeEpsilon = errors.New("epsilon must be positive")
 
@@ -52,7 +52,7 @@ func DeltaNumeric(
 		return
 	}
 
-	if spot > eps {
+	if spot > eps { // Use symmetric difference
 		spot -= eps
 		eps *= 2
 	}
@@ -109,7 +109,7 @@ func GammaNumeric(
 		return
 	}
 
-	if spot > eps {
+	if spot > eps { // Use symmetric difference
 		spot -= eps
 		eps *= 2
 	}

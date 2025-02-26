@@ -10,8 +10,6 @@ import (
 
 func TestTheta(t *testing.T) {
 
-	t.Skip("Need to fix theta")
-
 	assert := assert.New(t)
 	tolerance := defaultTolerance
 
@@ -43,6 +41,6 @@ func TestTheta(t *testing.T) {
 			optionType,
 		)
 		assert.NoError(err)
-		assert.InDelta(theta, thetaNum, tolerance)
+		assert.InEpsilon(theta, thetaNum, tolerance)
 	}
 }
