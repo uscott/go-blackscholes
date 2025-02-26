@@ -51,6 +51,38 @@ func ValidOptionType(optionType OptionType) bool {
 	return optionType == Call || optionType == Put || optionType == Straddle
 }
 
+func getd1d2(
+	vol, timeToExpiry, spot, strike, interestRate, dividendYield float64,
+) (d1, d2 float64, err error) {
+
+	d1 = math.NaN()
+	d2 = math.NaN()
+
+	if timeToExpiry <= 0 {
+		err = ErrNegTimeToExp
+		return
+	}
+
+	if vol <= 0 {
+		err = ErrNegVol
+		return
+	}
+
+	if spot <= 0 || strike <= 0 {
+		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
+		return
+	}
+
+	spot *= math.Exp(-dividendYield * timeToExpiry)
+	strike *= math.Exp(-interestRate * timeToExpiry)
+	vol *= math.Sqrt(timeToExpiry)
+
+	d1 = math.Log(spot/strike)/vol + 0.5*vol
+	d2 = d1 - vol
+
+	return
+}
+
 // Price returns the Black Scholes option price.
 // vol = volatility in same units as timeToExpiry
 // timeToExpiry = time to expiry
@@ -86,15 +118,7 @@ func Price(
 
 	vol = math.Abs(vol)
 
-	var d1, d2 float64
-
-	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
-	if err != nil {
-		price = math.NaN()
-		return
-	}
-
-	d2, err = D2fromD1(d1, vol, timeToExpiry)
+	d1, d2, err := getd1d2(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 	if err != nil {
 		price = math.NaN()
 		return
@@ -147,8 +171,7 @@ func Delta(
 	volIsNegative := vol < 0
 	vol = math.Abs(vol)
 
-	var d1 float64
-	d1, err = D1(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
+	d1, _, err := getd1d2(vol, timeToExpiry, spot, strike, interestRate, dividendYield)
 	if err != nil {
 		delta = math.NaN()
 		return
@@ -401,14 +424,16 @@ func D1(
 		return
 	}
 
-	if strike == 0 || spot*strike < 0 {
+	if spot <= 0 || strike <= 0 {
 		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
 		return
 	}
 
-	d1 = (math.Log(spot/strike) + (interestRate-dividendYield+0.5*vol*vol)*timeToExpiry) / vol / math.Sqrt(
-		timeToExpiry,
-	)
+	spot *= math.Exp(-dividendYield * timeToExpiry)
+	strike *= math.Exp(-interestRate * timeToExpiry)
+	vol *= math.Sqrt(timeToExpiry)
+
+	d1 = math.Log(spot/strike)/vol + 0.5*vol
 
 	return
 }
@@ -429,7 +454,7 @@ func D2(
 		return
 	}
 
-	if strike == 0 || spot*strike < 0 {
+	if strike <= 0 || spot <= 0 {
 		err = fmt.Errorf("invalid spot (%f) or strike price (%f)", spot, strike)
 		return
 	}
