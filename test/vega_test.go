@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uscott/go-blackscholes"
+	blackscholes "github.com/uscott/go-blackscholes"
 )
 
 func TestVega(t *testing.T) {
@@ -41,6 +41,6 @@ func TestVega(t *testing.T) {
 			optionType,
 		)
 		assert.NoError(err)
-		assert.InDelta(vega, vegaNum, tolerance)
+		assert.InEpsilon(vega, vegaNum, tolerance)
 	}
 }

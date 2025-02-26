@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uscott/go-blackscholes"
+	blackscholes "github.com/uscott/go-blackscholes"
 )
 
 func TestTheta(t *testing.T) {
@@ -41,6 +41,6 @@ func TestTheta(t *testing.T) {
 			optionType,
 		)
 		assert.NoError(err)
-		assert.InDelta(theta, thetaNum, tolerance)
+		assert.InEpsilon(theta, thetaNum, tolerance)
 	}
 }

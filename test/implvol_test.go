@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uscott/go-blackscholes"
+	blackscholes "github.com/uscott/go-blackscholes"
 )
 
 func TestImpliedVol(t *testing.T) {
@@ -24,9 +24,25 @@ func TestImpliedVol(t *testing.T) {
 	vol, timeToExpiry, spot, strike, interestRate, dividendYield, _ := getTestParams()
 
 	for _, optionType := range []blackscholes.OptionType{blackscholes.Call, blackscholes.Put, blackscholes.Straddle} {
-		premium, err := blackscholes.Price(vol, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		premium, err := blackscholes.Price(
+			vol,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
 		assert.NoError(err)
-		impliedVol, err := blackscholes.ImpliedVol(premium, timeToExpiry, spot, strike, interestRate, dividendYield, optionType)
+		impliedVol, err := blackscholes.ImpliedVol(
+			premium,
+			timeToExpiry,
+			spot,
+			strike,
+			interestRate,
+			dividendYield,
+			optionType,
+		)
 		assert.NoError(err)
 		assert.InDelta(vol, impliedVol, tolerance)
 	}
