@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uscott/go-blackscholes"
+	blackscholes "github.com/uscott/go-blackscholes"
 )
 
 func TestGamma(t *testing.T) {

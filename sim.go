@@ -39,12 +39,7 @@ func PriceSim(
 	for i := uint(1); i < npaths; i += 2 {
 
 		u := float64(i) / float64(npaths)
-
-		var z float64
-		z, err = NormCDFInverse(u)
-		if err != nil {
-			return
-		}
+		z := NormCDFInverse(u)
 
 		spot = expectedSpot * math.Exp(mu+sigma*z)
 		sum += Intrinsic(0, spot, strike, 0, 0, optionType)

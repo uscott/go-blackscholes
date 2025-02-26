@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/uscott/go-blackscholes"
+	blackscholes "github.com/uscott/go-blackscholes"
 )
 
 const defaultTolerance float64 = 1e-4
